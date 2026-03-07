@@ -159,7 +159,10 @@ app.get('/api/download-clip', async (req, res) => {
     } catch (error) {
         console.error('Clip generation error:', error);
         if (fs.existsSync(localVideoPath)) fs.unlinkSync(localVideoPath);
-        res.status(500).json({ message: 'Error generating video clip from cloud source' });
+        res.status(500).json({
+            message: `Error generating video clip: ${error.message}`,
+            details: error.stack
+        });
     }
 });
 
