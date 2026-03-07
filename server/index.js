@@ -120,26 +120,7 @@ app.get('/api/download-clip', async (req, res) => {
         return res.status(400).json({ message: 'Missing parameters: videoUrl, start' });
     }
 
-    const tempVideoName = `temp_${Date.now()}.mp4`;
-    const localVideoPath = path.join(uploadDir, tempVideoName);
-
     try {
-        // Download from Cloudinary to local temp for cutting
-        const axios = require('axios');
-        const response = await axios({
-            url: videoUrl,
-            method: 'GET',
-            responseType: 'stream'
-        });
-
-        const writer = fs.createWriteStream(localVideoPath);
-        response.data.pipe(writer);
-
-        await new Promise((resolve, reject) => {
-            writer.on('finish', resolve);
-            writer.on('error', reject);
-        });
-
         const startTime = parseFloat(start);
         let endTime = parseFloat(end);
 
@@ -147,18 +128,35 @@ app.get('/api/download-clip', async (req, res) => {
             endTime = startTime + 5;
         }
 
-        const clipPath = await cutVideo(localVideoPath, startTime, endTime, uploadDir);
+        // Use Cloudinary URL transformation for clipping to save server RAM
+        // Format: .../video/upload/so_<start>,eo_<end>,fl_attachment/<public_id>
+        if (videoUrl.includes('cloudinary.com')) {
+            const transformation = `so_${startTime},eo_${endTime},fl_attachment`;
+            const transformedUrl = videoUrl.replace('/video/upload/', `/video/upload/${transformation}/`);
+            console.log('Redirecting to Cloudinary clip:', transformedUrl);
+            return res.redirect(transformedUrl);
+        }
 
+        // Fallback for local development (not used in production)
+        const tempVideoName = `temp_${Date.now()}.mp4`;
+        const localVideoPath = path.join(uploadDir, tempVideoName);
+        const axios = require('axios');
+        const response = await axios({ url: videoUrl, method: 'GET', responseType: 'stream' });
+        const writer = fs.createWriteStream(localVideoPath);
+        response.data.pipe(writer);
+        await new Promise((resolve, reject) => {
+            writer.on('finish', resolve);
+            writer.on('error', reject);
+        });
+
+        const clipPath = await require('./cutVideo')(localVideoPath, startTime, endTime, uploadDir);
         res.download(clipPath, (err) => {
             if (err) console.error('Download error:', err);
-
-            // Cleanup all temp files
             fs.unlink(localVideoPath, (e) => { if (e) console.error(e); });
             fs.unlink(clipPath, (e) => { if (e) console.error(e); });
         });
     } catch (error) {
         console.error('Clip generation error:', error);
-        if (fs.existsSync(localVideoPath)) fs.unlinkSync(localVideoPath);
         res.status(500).json({
             message: `Error generating video clip: ${error.message}`,
             details: error.stack
