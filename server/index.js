@@ -99,13 +99,16 @@ app.post('/api/upload', upload.single('video'), async (req, res) => {
             transcript: transcript
         });
     } catch (error) {
-        console.error('Processing error:', error);
+        console.error('Server error:', error);
 
         // Cleanup on error
         if (fs.existsSync(localVideoPath)) fs.unlinkSync(localVideoPath);
         if (localAudioPath && fs.existsSync(localAudioPath)) fs.unlinkSync(localAudioPath);
 
-        res.status(500).json({ message: 'Error processing video analysis' });
+        res.status(500).json({
+            message: `Server Error: ${error.message}`,
+            details: error.stack
+        });
     }
 });
 
