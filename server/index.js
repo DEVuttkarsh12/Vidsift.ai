@@ -20,13 +20,13 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
-    methods: ['GET', 'POST'],
-    credentials: true
-}));
+app.use(cors()); // Temporarily allow all origins to rule out CORS issues
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Increase payload limits for video uploads
+app.use(express.urlencoded({ extended: true, limit: '100mb' }));
+app.use(express.json({ limit: '100mb' }));
 
 // Ensure uploads directory exists (used as temp storage)
 const uploadDir = path.join(__dirname, 'uploads');

@@ -148,7 +148,8 @@ function App() {
       setVideoUrl(data.videoUrl);
       setTranscript(data.transcript);
     } catch (err) {
-      setError(err.message);
+      console.error('Upload Error:', err);
+      setError(`Connection Error: ${err.message}. Check if the backend URL is correct and the server is running.`);
     } finally {
       setIsUploading(false);
     }
