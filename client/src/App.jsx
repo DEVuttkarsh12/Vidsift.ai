@@ -73,7 +73,6 @@ function App() {
   const toggleTheme = () => {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   };
-
   const formatTime = (time) => {
     if (typeof time === 'string') return time;
     const minutes = Math.floor(time / 60);

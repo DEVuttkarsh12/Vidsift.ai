@@ -25,12 +25,13 @@
   --primary: #4F46E5;
   --accent: #06B6D4;
   --text-main: #111827;
-  --text-muted: #6B7280;
-  --bg-dark: #F1F5F9;
-  /* Softer Cloud Grey */
+  --text-muted: #4B5563;
+  --bg-dark: #EDF2F7;
+  /* Slightly darker to make cards pop */
   --bg-surface: #E2E8F0;
-  --bg-card: rgba(255, 255, 255, 0.4);
-  --border: rgba(0, 0, 0, 0.04);
+  --bg-card: rgba(255, 255, 255, 0.7);
+  /* More opaque */
+  --border: rgba(0, 0, 0, 0.08);
 }
 
 * {
@@ -216,9 +217,13 @@ body::after {
 }
 
 [data-theme='light'] .droplet {
-  background: rgba(0, 0, 0, 0.05);
-  border-color: rgba(0, 0, 0, 0.05);
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+  background: rgba(79, 70, 229, 0.1);
+  /* Indigo tint for visibility */
+  border-color: rgba(79, 70, 229, 0.15);
+  box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.4),
+    0 4px 12px rgba(0, 0, 0, 0.03);
+  opacity: 0.4;
+  /* Higher opacity */
 }
 
 @keyframes float-droplet {
@@ -254,7 +259,7 @@ body::after {
 
 /* Components - Floating Glass */
 .designer-card {
-  background: rgba(255, 255, 255, 0.01);
+  background: var(--bg-card);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border: var(--glass-border);
@@ -262,6 +267,12 @@ body::after {
   padding: 5rem;
   margin-bottom: 8rem;
   transition: var(--theme-transition);
+  box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme='dark'] .designer-card {
+  border-color: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.5);
 }
 
 .designer-card:hover {
@@ -269,6 +280,11 @@ body::after {
   border-color: rgba(255, 255, 255, 0.15);
   transform: scale(0.99);
   /* Sophisticated inward scale */
+}
+
+[data-theme='light'] .designer-card:hover {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(0, 0, 0, 0.1);
 }
 
 .card-label {
