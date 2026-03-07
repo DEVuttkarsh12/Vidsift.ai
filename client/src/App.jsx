@@ -164,6 +164,8 @@ function App() {
       <div className="bg-mesh">
         <div className="bg-sphere sphere-1"></div>
         <div className="bg-sphere sphere-2"></div>
+        <div className="bg-sphere sphere-3"></div>
+        <div className="bg-sphere sphere-4"></div>
       </div>
 
       {/* Theme Control */}

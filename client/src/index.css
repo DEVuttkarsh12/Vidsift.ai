@@ -64,7 +64,7 @@ body::after {
   z-index: 9999;
 }
 
-/* Liquid Canvas */
+/* Liquid Canvas - Advanced Simulations */
 .bg-mesh {
   position: fixed;
   top: 0;
@@ -73,50 +73,101 @@ body::after {
   height: 100vh;
   z-index: -1;
   background: radial-gradient(circle at 50% 50%, var(--bg-surface) 0%, var(--bg-dark) 100%);
-  transition: background 0.8s ease;
+  transition: background 1s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
 }
 
 .bg-sphere {
   position: absolute;
   border-radius: 50%;
-  filter: blur(160px);
-  opacity: 0.2;
-  animation: liquid-move 60s infinite linear;
+  filter: blur(140px);
+  opacity: 0.25;
+  transition: all 1s ease;
 }
 
+/* Dark Mode Simulation: Deep Intelligence */
+[data-theme='dark'] .bg-sphere {
+  mix-blend-mode: plus-lighter;
+  animation: simulation-dark 50s infinite linear;
+}
+
+/* Light Mode Simulation: Creative Clarity */
 [data-theme='light'] .bg-sphere {
-  opacity: 0.1;
+  opacity: 0.12;
   mix-blend-mode: multiply;
+  animation: simulation-light 40s infinite linear;
 }
 
 .sphere-1 {
-  width: 80vw;
-  height: 80vw;
+  width: 90vw;
+  height: 90vw;
   background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
-  top: -30%;
-  left: -20%;
+  top: -20%;
+  left: -10%;
+  animation-duration: 60s !important;
 }
 
 .sphere-2 {
-  width: 60vw;
-  height: 60vw;
+  width: 70vw;
+  height: 70vw;
   background: radial-gradient(circle, var(--primary) 0%, transparent 60%);
   bottom: -10%;
   right: -10%;
-  animation-delay: -30s;
+  animation-delay: -10s;
+  animation-duration: 45s !important;
 }
 
-@keyframes liquid-move {
+.sphere-3 {
+  width: 50vw;
+  height: 50vw;
+  background: radial-gradient(circle, #6366f1 0%, transparent 60%);
+  top: 30%;
+  right: 20%;
+  animation-delay: -20s;
+  animation-duration: 55s !important;
+  opacity: 0.1;
+}
+
+.sphere-4 {
+  width: 40vw;
+  height: 40vw;
+  background: radial-gradient(circle, #ec4899 0%, transparent 60%);
+  bottom: 20%;
+  left: 10%;
+  animation-delay: -30s;
+  animation-duration: 50s !important;
+  opacity: 0.05;
+}
+
+@keyframes simulation-dark {
   0% {
-    transform: rotate(0deg) translate(0, 0) scale(1);
+    transform: translate(0, 0) scale(1) rotate(0deg);
   }
 
-  50% {
-    transform: rotate(180deg) translate(5%, 5%) scale(1.1);
+  33% {
+    transform: translate(4%, 6%) scale(1.1) rotate(5deg);
+  }
+
+  66% {
+    transform: translate(-3%, 4%) scale(0.9) rotate(-3deg);
   }
 
   100% {
-    transform: rotate(360deg) translate(0, 0) scale(1);
+    transform: translate(0, 0) scale(1) rotate(0deg);
+  }
+}
+
+@keyframes simulation-light {
+  0% {
+    transform: translate(0, 0) scale(1.05);
+  }
+
+  50% {
+    transform: translate(-2%, -4%) scale(1);
+  }
+
+  100% {
+    transform: translate(0, 0) scale(1.05);
   }
 }
 
