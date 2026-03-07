@@ -11,21 +11,23 @@
   --glass-border: 1px solid rgba(255, 255, 255, 0.08);
 
   /* Minimal Palette */
-  --primary: #FFFFFF;
+  --primary: #8B5CF6;
   --accent: #A78BFA;
   --text-main: #FFFFFF;
   --text-muted: #888888;
   --bg-dark: #050505;
+  --bg-surface: #111111;
   --bg-card: rgba(255, 255, 255, 0.03);
   --border: rgba(255, 255, 255, 0.1);
 }
 
 [data-theme='light'] {
-  --primary: #000000;
-  --accent: #6D28D9;
+  --primary: #6D28D9;
+  --accent: #8B5CF6;
   --text-main: #000000;
   --text-muted: #666666;
   --bg-dark: #FFFFFF;
+  --bg-surface: #F8FAFC;
   --bg-card: rgba(0, 0, 0, 0.03);
   --border: rgba(0, 0, 0, 0.1);
 }
@@ -67,23 +69,29 @@ body::after {
   top: 0;
   left: 0;
   width: 100%;
-  height: 100%;
+  height: 100vh;
   z-index: -1;
-  background: radial-gradient(circle at 50% 50%, #111 0%, #000 100%);
+  background: radial-gradient(circle at 50% 50%, var(--bg-surface) 0%, var(--bg-dark) 100%);
+  transition: background 0.8s ease;
 }
 
 .bg-sphere {
   position: absolute;
   border-radius: 50%;
   filter: blur(160px);
-  opacity: 0.4;
+  opacity: 0.2;
   animation: liquid-move 60s infinite linear;
+}
+
+[data-theme='light'] .bg-sphere {
+  opacity: 0.1;
+  mix-blend-mode: multiply;
 }
 
 .sphere-1 {
   width: 80vw;
   height: 80vw;
-  background: radial-gradient(circle, #222 0%, transparent 70%);
+  background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
   top: -30%;
   left: -20%;
 }
@@ -91,7 +99,7 @@ body::after {
 .sphere-2 {
   width: 60vw;
   height: 60vw;
-  background: radial-gradient(circle, #1a1a1a 0%, transparent 60%);
+  background: radial-gradient(circle, var(--primary) 0%, transparent 60%);
   bottom: -10%;
   right: -10%;
   animation-delay: -30s;
