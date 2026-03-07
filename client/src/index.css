@@ -16,6 +16,8 @@
   --text-main: #FFFFFF;
   --text-muted: #888888;
   --bg-dark: #050505;
+  --bg-card: rgba(255, 255, 255, 0.03);
+  --border: rgba(255, 255, 255, 0.1);
 }
 
 [data-theme='light'] {
@@ -24,6 +26,8 @@
   --text-main: #000000;
   --text-muted: #666666;
   --bg-dark: #FFFFFF;
+  --bg-card: rgba(0, 0, 0, 0.03);
+  --border: rgba(0, 0, 0, 0.1);
 }
 
 * {
@@ -263,11 +267,11 @@ body::after {
 /* Global Theme Toggle */
 .theme-toggle {
   position: fixed;
-  top: 2rem;
-  right: 2rem;
+  top: 3rem;
+  right: 3rem;
   z-index: 10000;
-  width: 48px;
-  height: 48px;
+  width: 54px;
+  height: 54px;
   background: var(--bg-card);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
@@ -278,8 +282,8 @@ body::after {
   justify-content: center;
   cursor: pointer;
   color: var(--text-main);
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
 }
 
 .theme-toggle:hover {
@@ -287,11 +291,12 @@ body::after {
   background: var(--text-main);
   color: var(--bg-dark);
   border-color: var(--text-main);
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
 }
 
-.theme-toggle:active {
-  transform: scale(0.95);
+.theme-toggle svg {
+  width: 22px;
+  height: 22px;
+  stroke-width: 1.5;
 }
 
 /* Desktop-First Premium Feel */
