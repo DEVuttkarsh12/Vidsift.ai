@@ -1,0 +1,11 @@
+{
+    "$schema": "https://railway.app/nixpacks.schema.json",
+    "providers": [
+        "node"
+    ],
+    "build": {
+        "aptPkgs": [
+            "ffmpeg"
+        ]
+    }
+}

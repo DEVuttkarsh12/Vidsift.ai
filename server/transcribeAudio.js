@@ -1,6 +1,5 @@
 const fs = require('fs');
 const Groq = require('groq-sdk');
-const { pipeline } = require('@xenova/transformers');
 
 // Initialize Groq if key exists
 const groq = process.env.GROQ_API_KEY ? new Groq({ apiKey: process.env.GROQ_API_KEY }) : null;
@@ -36,6 +35,7 @@ async function transcribeAudio(audioPath) {
 
 async function fallbackToLocal(audioPath) {
     console.log('Using Local Transcription (Whisper-OOD)...');
+    const { pipeline } = require('@xenova/transformers');
     const transcriber = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny.en');
 
     const output = await transcriber(audioPath, {

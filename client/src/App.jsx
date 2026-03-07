@@ -142,7 +142,10 @@ function App() {
         body: formData,
       });
 
-      if (!response.ok) throw new Error('Analysis failed. Check your connection or file size.');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Analysis failed. The server might be busy or restarting.');
+      }
 
       const data = await response.json();
       setVideoUrl(data.videoUrl);
