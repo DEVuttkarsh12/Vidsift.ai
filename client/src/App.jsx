@@ -18,6 +18,40 @@ import {
 } from 'lucide-react';
 import './index.css';
 
+function DropletSimulation() {
+  const droplets = Array.from({ length: 25 }).map((_, i) => ({
+    id: i,
+    size: Math.random() * 40 + 10,
+    top: `${Math.random() * 100}%`,
+    left: `${Math.random() * 100}%`,
+    duration: `${Math.random() * 20 + 20}s`,
+    opacity: Math.random() * 0.15 + 0.05,
+    moveX: `${Math.random() * 100 - 50}px`,
+    moveY: `${Math.random() * 100 - 50}px`,
+  }));
+
+  return (
+    <div className="droplet-surface">
+      {droplets.map(d => (
+        <div
+          key={d.id}
+          className="droplet"
+          style={{
+            width: d.size,
+            height: d.size,
+            top: d.top,
+            left: d.left,
+            '--duration': d.duration,
+            '--opacity': d.opacity,
+            '--move-x': d.moveX,
+            '--move-y': d.moveY,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 function App() {
   const [file, setFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -166,6 +200,7 @@ function App() {
         <div className="bg-sphere sphere-2"></div>
         <div className="bg-sphere sphere-3"></div>
         <div className="bg-sphere sphere-4"></div>
+        <DropletSimulation />
       </div>
 
       {/* Theme Control */}
