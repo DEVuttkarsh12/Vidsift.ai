@@ -1,7 +1,7 @@
 {
-    "name": "clipsense-server",
+    "name": "vidsift-server",
     "version": "1.0.0",
-    "description": "ClipSense Backend MVP",
+    "description": "VidSift Backend MVP",
     "main": "index.js",
     "scripts": {
         "start": "node index.js",

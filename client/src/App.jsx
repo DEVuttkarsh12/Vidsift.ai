@@ -211,7 +211,7 @@ function App() {
         <header className="header reveal">
           <div className="logo-section">
             <Zap className="logo-icon" size={42} fill="currentColor" />
-            <h1 className="logo-text">ClipSense</h1>
+            <h1 className="logo-text">VidSift</h1>
           </div>
           <p className="tagline">Local AI intelligence for your video archive. Extract moments that matter without sending data to the cloud.</p>
         </header>
