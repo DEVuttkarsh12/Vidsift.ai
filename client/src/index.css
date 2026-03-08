@@ -76,27 +76,34 @@ body::after {
   background: radial-gradient(circle at 50% 50%, var(--bg-surface) 0%, var(--bg-dark) 100%);
   transition: background 1s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
+  will-change: background;
 }
 
 .bg-sphere {
   position: absolute;
   border-radius: 50%;
-  filter: blur(140px);
-  opacity: 0.25;
+  filter: blur(80px);
+  /* Significantly reduced from 140px */
+  opacity: 0.15;
+  /* Reduced initial opacity */
   transition: all 1s ease;
+  will-change: transform;
+  /* Promote to hardware layer */
 }
 
 /* Dark Mode Simulation: Deep Intelligence */
 [data-theme='dark'] .bg-sphere {
-  mix-blend-mode: plus-lighter;
-  animation: simulation-dark 50s infinite linear;
+  mix-blend-mode: screen;
+  /* Less expensive than plus-lighter */
+  animation: simulation-dark 80s infinite linear;
+  /* Slower = Lower GPU cost */
 }
 
 /* Light Mode Simulation: Creative Clarity */
 [data-theme='light'] .bg-sphere {
-  opacity: 0.12;
+  opacity: 0.08;
   mix-blend-mode: multiply;
-  animation: simulation-light 40s infinite linear;
+  animation: simulation-light 60s infinite linear;
 }
 
 .sphere-1 {
@@ -118,57 +125,31 @@ body::after {
   animation-duration: 45s !important;
 }
 
-.sphere-3 {
-  width: 50vw;
-  height: 50vw;
-  background: radial-gradient(circle, #6366f1 0%, transparent 60%);
-  top: 30%;
-  right: 20%;
-  animation-delay: -20s;
-  animation-duration: 55s !important;
-  opacity: 0.1;
-}
-
-.sphere-4 {
-  width: 40vw;
-  height: 40vw;
-  background: radial-gradient(circle, #ec4899 0%, transparent 60%);
-  bottom: 20%;
-  left: 10%;
-  animation-delay: -30s;
-  animation-duration: 50s !important;
-  opacity: 0.05;
-}
-
 @keyframes simulation-dark {
   0% {
-    transform: translate(0, 0) scale(1) rotate(0deg);
+    transform: translate(0, 0) rotate(0deg);
   }
 
-  33% {
-    transform: translate(4%, 6%) scale(1.1) rotate(5deg);
-  }
-
-  66% {
-    transform: translate(-3%, 4%) scale(0.9) rotate(-3deg);
+  50% {
+    transform: translate(2%, 2%) rotate(1deg);
   }
 
   100% {
-    transform: translate(0, 0) scale(1) rotate(0deg);
+    transform: translate(0, 0) rotate(0deg);
   }
 }
 
 @keyframes simulation-light {
   0% {
-    transform: translate(0, 0) scale(1.05);
+    transform: translateY(0);
   }
 
   50% {
-    transform: translate(-2%, -4%) scale(1);
+    transform: translateY(-2%);
   }
 
   100% {
-    transform: translate(0, 0) scale(1.05);
+    transform: translateY(0);
   }
 }
 
@@ -206,14 +187,15 @@ body::after {
 
 .droplet {
   position: absolute;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(255, 255, 255, 0.05);
+  /* Lighter background */
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   animation: float-droplet var(--duration) infinite ease-in-out;
   opacity: var(--opacity);
+  will-change: transform;
+  /* Critical hardware promotion */
+  /* Backdrop-filter REMOVED - High Performance */
 }
 
 [data-theme='light'] .droplet {
