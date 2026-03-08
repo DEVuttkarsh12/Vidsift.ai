@@ -163,7 +163,6 @@ function App() {
     <div className="app-root">
       {/* Dynamic Background Elements */}
       <div className="bg-mesh">
-        <DropletSimulation />
       </div>
 
       {/* Theme Control */}

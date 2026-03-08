@@ -91,6 +91,18 @@ body {
   margin-bottom: 2rem;
 }
 
+.logo-img {
+  height: 60px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 0 20px rgba(139, 92, 246, 0.4));
+  transition: transform 0.5s ease;
+}
+
+.logo-section:hover .logo-img {
+  transform: scale(1.05) rotate(-2deg);
+}
+
 .logo-glow-aura {
   animation: logo-pulse 3s infinite ease-in-out;
 }
