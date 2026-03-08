@@ -19,15 +19,15 @@ import {
 import './index.css';
 
 function DropletSimulation() {
-  const droplets = Array.from({ length: 25 }).map((_, i) => ({
+  const droplets = Array.from({ length: 12 }).map((_, i) => ({
     id: i,
-    size: Math.random() * 40 + 10,
+    size: Math.random() * 30 + 5,
     top: `${Math.random() * 100}%`,
     left: `${Math.random() * 100}%`,
-    duration: `${Math.random() * 20 + 20}s`,
-    opacity: Math.random() * 0.15 + 0.05,
-    moveX: `${Math.random() * 100 - 50}px`,
-    moveY: `${Math.random() * 100 - 50}px`,
+    duration: `${Math.random() * 30 + 30}s`,
+    opacity: Math.random() * 0.08 + 0.02,
+    moveX: `${Math.random() * 80 - 40}px`,
+    moveY: `${Math.random() * 80 - 40}px`,
   }));
 
   return (
@@ -197,8 +197,6 @@ function App() {
       <div className="bg-mesh">
         <div className="bg-sphere sphere-1"></div>
         <div className="bg-sphere sphere-2"></div>
-        <div className="bg-sphere sphere-3"></div>
-        <div className="bg-sphere sphere-4"></div>
         <DropletSimulation />
       </div>
 
