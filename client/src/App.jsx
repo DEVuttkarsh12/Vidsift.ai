@@ -16,63 +16,9 @@ import {
   ChevronRight,
   Zap
 } from 'lucide-react';
+import logo from './assets/vidsift-final__1_-removebg-preview.png';
 import './index.css';
 
-function DropletSimulation() {
-  const droplets = Array.from({ length: 12 }).map((_, i) => ({
-    id: i,
-    size: Math.random() * 30 + 5,
-    top: `${Math.random() * 100}%`,
-    left: `${Math.random() * 100}%`,
-    duration: `${Math.random() * 30 + 30}s`,
-    opacity: Math.random() * 0.08 + 0.02,
-    moveX: `${Math.random() * 80 - 40}px`,
-    moveY: `${Math.random() * 80 - 40}px`,
-  }));
-
-  return (
-    <div className="droplet-surface">
-      {droplets.map(d => (
-        <div
-          key={d.id}
-          className="droplet"
-          style={{
-            width: d.size,
-            height: d.size,
-            top: d.top,
-            left: d.left,
-            '--duration': d.duration,
-            '--opacity': d.opacity,
-            '--move-x': d.moveX,
-            '--move-y': d.moveY,
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-function VidSiftLogo({ size = 42 }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 100 100"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className="logo-svg"
-    >
-      <path
-        d="M25 35L50 65L75 35"
-        stroke="currentColor"
-        strokeWidth="10"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <circle cx="50" cy="65" r="8" fill="currentColor" className="logo-glow-dot" />
-      <circle cx="50" cy="65" r="15" fill="currentColor" opacity="0.3" className="logo-glow-aura" />
-    </svg>
-  );
-}
 
 function App() {
   const [file, setFile] = useState(null);
@@ -228,7 +174,7 @@ function App() {
       <div className="container">
         <header className="header reveal">
           <div className="logo-section">
-            <VidSiftLogo size={48} />
+            <img src={logo} alt="VidSift Logo" className="logo-img" />
             <h1 className="logo-text">VidSift</h1>
           </div>
           <p className="tagline">Local AI intelligence for your video archive. Extract moments that matter without sending data to the cloud.</p>
