@@ -51,6 +51,28 @@ function DropletSimulation() {
     </div>
   );
 }
+function VidSiftLogo({ size = 42 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 100 100"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="logo-svg"
+    >
+      <path
+        d="M25 35L50 65L75 35"
+        stroke="currentColor"
+        strokeWidth="10"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="50" cy="65" r="8" fill="currentColor" className="logo-glow-dot" />
+      <circle cx="50" cy="65" r="15" fill="currentColor" opacity="0.3" className="logo-glow-aura" />
+    </svg>
+  );
+}
 
 function App() {
   const [file, setFile] = useState(null);
@@ -195,8 +217,6 @@ function App() {
     <div className="app-root">
       {/* Dynamic Background Elements */}
       <div className="bg-mesh">
-        <div className="bg-sphere sphere-1"></div>
-        <div className="bg-sphere sphere-2"></div>
         <DropletSimulation />
       </div>
 
@@ -208,7 +228,7 @@ function App() {
       <div className="container">
         <header className="header reveal">
           <div className="logo-section">
-            <Zap className="logo-icon" size={42} fill="currentColor" />
+            <VidSiftLogo size={48} />
             <h1 className="logo-text">VidSift</h1>
           </div>
           <p className="tagline">Local AI intelligence for your video archive. Extract moments that matter without sending data to the cloud.</p>
