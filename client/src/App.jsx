@@ -28,6 +28,7 @@ function App() {
   const [isUploading, setIsUploading] = useState(false);
   const [extractionProgress, setExtractionProgress] = useState(0);
   const [isExtracting, setIsExtracting] = useState(false);
+  const [isClipping, setIsClipping] = useState(false);
   const [videoUrl, setVideoUrl] = useState(null);
   const [transcript, setTranscript] = useState(null);
   const [error, setError] = useState(null);
@@ -132,12 +133,58 @@ function App() {
     }
   };
 
-  const handleDownloadClip = (start, end) => {
-    if (!videoUrl) return;
-    // Ensure end is a valid number, otherwise default to start + 5 seconds
-    const endTime = (end && !isNaN(end)) ? end : (parseFloat(start) + 5);
-    const downloadUrl = `${API_URL}/api/download-clip?videoUrl=${encodeURIComponent(videoUrl)}&start=${start}&end=${endTime}`;
-    window.location.href = downloadUrl;
+  const handleDownloadClip = async (start, end) => {
+    if (!videoUrl || !file || !ffmpegLoaded) return;
+
+    // Correctly handle missing end time
+    const startTime = parseFloat(start);
+    const endTime = (end && !isNaN(end)) ? parseFloat(end) : (startTime + 5);
+
+    setIsUploading(true);
+    setIsExtracting(true);
+    setExtractionProgress(0);
+    setError(null);
+
+    const ffmpeg = ffmpegRef.current;
+    const fileExt = file.name.split('.').pop();
+    const inputName = `input.${fileExt}`;
+    const outputName = `clip_${Date.now()}.${fileExt}`;
+
+    try {
+      console.log(`Stage 1: Clipping Segment [${startTime}s - ${endTime}s] in Browser...`);
+
+      // Load file into FS if not already there (we can check with listDir but let's just write for safety)
+      await ffmpeg.writeFile(inputName, await fetchFile(file));
+
+      // Fast seek and cut
+      await ffmpeg.exec([
+        '-ss', startTime.toString(),
+        '-i', inputName,
+        '-to', (endTime - startTime).toString(),
+        '-c', 'copy', // Fast copy (no re-encoding)
+        outputName
+      ]);
+
+      const data = await ffmpeg.readFile(outputName);
+      const clipBlob = new Blob([data.buffer], { type: `video/${fileExt}` });
+
+      const url = URL.createObjectURL(clipBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = outputName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      console.log('Clip generated and downloaded successfully!');
+    } catch (err) {
+      console.error('Clipping Error:', err);
+      setError(`Failed to generate clip: ${err.message}`);
+    } finally {
+      setIsUploading(false);
+      setIsExtracting(false);
+    }
   };
 
   const handleExportTranscript = () => {
@@ -373,9 +420,11 @@ function App() {
                   <div className="loader-bar">
                     <div className="loader-progress"></div>
                   </div>
-                  <h3>{isExtracting ? "Extracting Audio Studio" : "AI Intelligence at Work"}</h3>
+                  <h3>{isExtracting ? "Extracting Audio Studio" : isClipping ? "Clipping Video Segment" : "AI Intelligence at Work"}</h3>
                   <p style={{ color: 'var(--text-muted)' }}>
-                    {isExtracting ? "Stripping high-fidelity audio locally..." : "Analyzing audio segments & generating transcript..."}
+                    {isExtracting ? "Stripping high-fidelity audio locally..." :
+                      isClipping ? "Building your custom video highlight..." :
+                        "Analyzing audio segments & generating transcript..."}
                   </p>
                 </div>
               )}
