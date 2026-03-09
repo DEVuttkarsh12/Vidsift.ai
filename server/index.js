@@ -49,13 +49,13 @@ const upload = multer({
     storage: storage,
     limits: { fileSize: 500 * 1024 * 1024 }, // 500MB limit
     fileFilter: (req, file, cb) => {
-        const filetypes = /mp4|mov|avi|mkv/;
+        const filetypes = /mp4|mov|avi|mkv|wav|mp3|m4a/;
         const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-        const mimetype = filetypes.test(file.mimetype);
+        const mimetype = /video|audio/.test(file.mimetype);
         if (extname && mimetype) {
             return cb(null, true);
         } else {
-            cb('Error: Videos Only!');
+            cb(new Error('Error: Unregistered file format! Supported: mp4, mov, wav, mp3.'));
         }
     }
 });
