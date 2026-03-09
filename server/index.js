@@ -19,6 +19,9 @@ cloudinary.config({
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Job Store (In-memory for MVP)
+const jobs = {};
+
 // Middleware
 // Middleware
 app.use(cors());
@@ -76,33 +79,53 @@ app.get('/api/generate-signature', (req, res) => {
     });
 });
 
-// 2. Analyze Cloudinary URL (Direct-to-Cloud Flow)
+// 2. Analyze Cloudinary URL (Async Job Flow)
 app.post('/api/analyze-cloudinary', async (req, res) => {
     const { videoUrl } = req.body;
     if (!videoUrl) return res.status(400).json({ message: 'Missing videoUrl' });
 
-    let localAudioPath = null;
-    try {
-        console.log('Processing remote video from Cloudinary...');
-        // FFmpeg can read directly from the URL
-        localAudioPath = await extractAudio(videoUrl, uploadDir);
+    const jobId = Date.now().toString(36) + Math.random().toString(36).substring(2);
+    jobs[jobId] = { status: 'processing', progress: 0, videoUrl };
 
-        console.log('Transcribing audio...');
-        const transcript = await transcribeAudio(localAudioPath);
+    // Start background processing
+    (async () => {
+        let localAudioPath = null;
+        try {
+            console.log(`[Job ${jobId}] Processing remote video...`);
+            localAudioPath = await extractAudio(videoUrl, uploadDir);
 
-        // Cleanup local audio
-        if (fs.existsSync(localAudioPath)) fs.unlinkSync(localAudioPath);
+            console.log(`[Job ${jobId}] Transcribing...`);
+            const transcript = await transcribeAudio(localAudioPath);
 
-        res.json({
-            message: 'Analysis complete',
-            videoUrl: videoUrl,
-            transcript: transcript
-        });
-    } catch (error) {
-        console.error('Remote processing error:', error);
-        if (localAudioPath && fs.existsSync(localAudioPath)) fs.unlinkSync(localAudioPath);
-        res.status(500).json({ message: `Processing Error: ${error.message}` });
-    }
+            // Cleanup local audio
+            if (fs.existsSync(localAudioPath)) fs.unlinkSync(localAudioPath);
+
+            jobs[jobId] = {
+                status: 'completed',
+                videoUrl: videoUrl,
+                transcript: transcript,
+                completedAt: new Date()
+            };
+            console.log(`[Job ${jobId}] Finished.`);
+        } catch (error) {
+            console.error(`[Job ${jobId}] Error:`, error);
+            if (localAudioPath && fs.existsSync(localAudioPath)) fs.unlinkSync(localAudioPath);
+            jobs[jobId] = {
+                status: 'error',
+                message: error.message
+            };
+        }
+    })();
+
+    // Respond immediately with jobId
+    res.json({ jobId });
+});
+
+// 3. Check Job Status (Polling Endpoint)
+app.get('/api/job-status/:id', (req, res) => {
+    const job = jobs[req.params.id];
+    if (!job) return res.status(404).json({ message: 'Job not found' });
+    res.json(job);
 });
 
 // 3. Legacy Upload (Keep for safety/small files fallback if needed)

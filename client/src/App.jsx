@@ -163,7 +163,7 @@ function App() {
       console.log('Cloudinary upload success:', cloudData.secure_url);
       const videoUrl = cloudData.secure_url;
 
-      console.log('Stage 3: Requesting backend analysis (This may take several minutes)...');
+      console.log('Stage 3: Initiating backend analysis...');
       const analyzeResponse = await fetch(`${API_URL}/api/analyze-cloudinary`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -175,10 +175,30 @@ function App() {
         throw new Error(errorData.message || `Server analysis error: ${analyzeResponse.status}`);
       }
 
-      const data = await analyzeResponse.json();
-      console.log('Analysis complete:', data);
-      setVideoUrl(data.videoUrl);
-      setTranscript(data.transcript);
+      const { jobId } = await analyzeResponse.json();
+      console.log('Job initiated:', jobId);
+
+      // 4. Poll for results (This bypasses any connection timeouts)
+      let isCompleted = false;
+      while (!isCompleted) {
+        console.log(`Polling job status: ${jobId}...`);
+        const statusResponse = await fetch(`${API_URL}/api/job-status/${jobId}`);
+        if (!statusResponse.ok) throw new Error('Lost connection to analysis worker');
+
+        const job = await statusResponse.json();
+
+        if (job.status === 'completed') {
+          console.log('Job finished successfully!');
+          setVideoUrl(job.videoUrl);
+          setTranscript(job.transcript);
+          isCompleted = true;
+        } else if (job.status === 'error') {
+          throw new Error(job.message || 'Transcription failed unexpectedly');
+        } else {
+          // Still processing... wait 3 seconds before next poll
+          await new Promise(r => setTimeout(r, 3000));
+        }
+      }
 
     } catch (err) {
       console.error('Final Upload Error Context:', err);
