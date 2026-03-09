@@ -180,27 +180,49 @@ function App() {
       const sigData = await sigResponse.json();
       console.log('Signature received:', sigData);
 
-      console.log('Stage 2: Uploading directly to Cloudinary...');
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('signature', sigData.signature);
-      formData.append('timestamp', sigData.timestamp);
-      formData.append('api_key', sigData.api_key);
-      formData.append('folder', sigData.folder);
+      console.log('Stage 2: Chunked Upload to Cloudinary (Resilient for >100MB)...');
+      const CHUNK_SIZE = 20 * 1024 * 1024; // 20MB Chunks
+      const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+      const uniqueUploadId = btoa(Date.now() + sigData.api_key).substring(0, 16);
+      let videoUrl = '';
 
-      const cloudResponse = await fetch(
-        `https://api.cloudinary.com/v1_1/${sigData.cloud_name}/video/upload`,
-        { method: 'POST', body: formData }
-      );
+      for (let i = 0; i < totalChunks; i++) {
+        const start = i * CHUNK_SIZE;
+        const end = Math.min(start + CHUNK_SIZE, file.size);
+        const chunk = file.slice(start, end);
 
-      if (!cloudResponse.ok) {
-        const cloudError = await cloudResponse.json();
-        throw new Error(`Cloudinary Error: ${cloudError.error?.message || 'Cloud upload failed'}`);
+        console.log(`Uploading chunk ${i + 1}/${totalChunks} (${(start / 1024 / 1024).toFixed(1)}MB - ${(end / 1024 / 1024).toFixed(1)}MB)`);
+
+        const formData = new FormData();
+        formData.append('file', chunk);
+        formData.append('signature', sigData.signature);
+        formData.append('timestamp', sigData.timestamp);
+        formData.append('api_key', sigData.api_key);
+        formData.append('folder', sigData.folder);
+
+        const cloudResponse = await fetch(
+          `https://api.cloudinary.com/v1_1/${sigData.cloud_name}/video/upload`,
+          {
+            method: 'POST',
+            body: formData,
+            headers: {
+              'X-Unique-Upload-Id': uniqueUploadId,
+              'Content-Range': `bytes ${start}-${end - 1}/${file.size}`
+            }
+          }
+        );
+
+        if (!cloudResponse.ok) {
+          const cloudError = await cloudResponse.json().catch(() => ({}));
+          throw new Error(`Cloudinary Chunk ${i + 1} Error: ${cloudError.error?.message || 'Chunk upload failed'}`);
+        }
+
+        const cloudData = await cloudResponse.json();
+        if (i === totalChunks - 1) {
+          videoUrl = cloudData.secure_url;
+          console.log('Final construction complete:', videoUrl);
+        }
       }
-
-      const cloudData = await cloudResponse.json();
-      console.log('Cloudinary upload success:', cloudData.secure_url);
-      const videoUrl = cloudData.secure_url;
 
       console.log('Stage 3: Initiating backend analysis...');
       const analyzeResponse = await fetch(`${API_URL}/api/analyze-cloudinary`, {
