@@ -320,10 +320,10 @@ function App() {
             <div className="designer-card">
               <span className="card-label">Media Source</span>
 
-              {!videoUrl && !isUploading ? (
+              {(!videoUrl || (file && !transcript && !isUploading)) && (
                 <div
-                  className="refined-dropzone"
-                  onClick={() => fileInputRef.current.click()}
+                  className={`refined-dropzone ${file ? 'has-file' : ''}`}
+                  onClick={() => !isUploading && fileInputRef.current.click()}
                 >
                   <input
                     type="file"
@@ -336,29 +336,42 @@ function App() {
                     <Upload size={32} />
                   </div>
                   <h3>{file ? file.name : "Import your video"}</h3>
-                  <p style={{ color: 'var(--text-muted)' }}>Drag and drop or click to browse</p>
+                  <p style={{ color: 'var(--text-muted)' }}>
+                    {file ? "Video ready for local intelligence" : "Drag and drop or click to browse"}
+                  </p>
 
-                  {file && (
+                  {file && !isUploading && (
                     <button
-                      className="action-btn"
+                      className="action-btn reveal"
+                      style={{ marginTop: '1.5rem', background: 'linear-gradient(135deg, #6366f1, #a855f7)' }}
                       onClick={(e) => { e.stopPropagation(); handleUpload(); }}
                     >
-                      Start Analysis <ChevronRight size={18} />
+                      <Zap size={18} /> Start Deep Analysis
                     </button>
                   )}
                 </div>
-              ) : isUploading ? (
+              )}
+
+              {videoUrl && !isUploading && (
+                <div className="refined-video-container reveal">
+                  <video
+                    ref={videoRef}
+                    src={videoUrl.startsWith('blob:') || videoUrl.startsWith('http') ? videoUrl : `${API_URL}${videoUrl}`}
+                    controls
+                  />
+                </div>
+              )}
+
+              {isUploading && (
                 <div className="loading-designer">
                   <Loader2 size={48} className="spin" style={{ color: 'var(--primary)' }} />
                   <div className="loader-bar">
                     <div className="loader-progress"></div>
                   </div>
-                  <h3>Processing Analysis</h3>
-                  <p style={{ color: 'var(--text-muted)' }}>Extracting high-fidelity audio & running local Whisper engine...</p>
-                </div>
-              ) : (
-                <div className="refined-video-container">
-                  <video ref={videoRef} src={videoUrl.startsWith('http') ? videoUrl : `${API_URL}${videoUrl}`} controls autoPlay />
+                  <h3>{isExtracting ? "Extracting Audio Studio" : "AI Intelligence at Work"}</h3>
+                  <p style={{ color: 'var(--text-muted)' }}>
+                    {isExtracting ? "Stripping high-fidelity audio locally..." : "Analyzing audio segments & generating transcript..."}
+                  </p>
                 </div>
               )}
             </div>
