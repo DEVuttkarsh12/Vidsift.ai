@@ -135,12 +135,13 @@ function App() {
     setError(null);
 
     try {
-      // 1. Get Signed Upload Signature from our backend
+      console.log('Stage 1: Requesting signature from backend...');
       const sigResponse = await fetch(`${API_URL}/api/generate-signature`);
-      if (!sigResponse.ok) throw new Error('Failed to get upload authorization');
+      if (!sigResponse.ok) throw new Error(`Backend Signature Error: ${sigResponse.status}`);
       const sigData = await sigResponse.json();
+      console.log('Signature received:', sigData);
 
-      // 2. Upload directly to Cloudinary (Bypasses Railway 100MB limit)
+      console.log('Stage 2: Uploading directly to Cloudinary...');
       const formData = new FormData();
       formData.append('file', file);
       formData.append('signature', sigData.signature);
@@ -159,9 +160,10 @@ function App() {
       }
 
       const cloudData = await cloudResponse.json();
+      console.log('Cloudinary upload success:', cloudData.secure_url);
       const videoUrl = cloudData.secure_url;
 
-      // 3. Send the Cloudinary URL to our backend for local transcription
+      console.log('Stage 3: Requesting backend analysis (This may take several minutes)...');
       const analyzeResponse = await fetch(`${API_URL}/api/analyze-cloudinary`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -170,16 +172,21 @@ function App() {
 
       if (!analyzeResponse.ok) {
         const errorData = await analyzeResponse.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Server analysis failed.');
+        throw new Error(errorData.message || `Server analysis error: ${analyzeResponse.status}`);
       }
 
       const data = await analyzeResponse.json();
+      console.log('Analysis complete:', data);
       setVideoUrl(data.videoUrl);
       setTranscript(data.transcript);
 
     } catch (err) {
-      console.error('Upload Error:', err);
-      setError(`Upload Failed: ${err.message}`);
+      console.error('Final Upload Error Context:', err);
+      if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
+        setError("Network Error: Could not connect to the server. Please check your internet or if the server is offline.");
+      } else {
+        setError(`Upload Failed: ${err.message}`);
+      }
     } finally {
       setIsUploading(false);
     }
