@@ -204,7 +204,11 @@ function App() {
   };
 
   const handleUpload = async () => {
-    if (!file || !ffmpegLoaded) return;
+    if (!file) return;
+    if (!ffmpegLoaded) {
+      setError("Local Intelligence Studio is still warming up... please wait 5 seconds and try again.");
+      return;
+    }
 
     setIsUploading(true);
     setIsExtracting(true);
@@ -336,17 +340,18 @@ function App() {
                     <Upload size={32} />
                   </div>
                   <h3>{file ? file.name : "Import your video"}</h3>
-                  <p style={{ color: 'var(--text-muted)' }}>
-                    {file ? "Video ready for local intelligence" : "Drag and drop or click to browse"}
-                  </p>
-
                   {file && !isUploading && (
                     <button
-                      className="action-btn reveal"
-                      style={{ marginTop: '1.5rem', background: 'linear-gradient(135deg, #6366f1, #a855f7)' }}
+                      className={`action-btn reveal ${!ffmpegLoaded ? 'loading' : ''}`}
+                      disabled={!ffmpegLoaded}
+                      style={{
+                        marginTop: '1.5rem',
+                        background: !ffmpegLoaded ? '#444' : 'linear-gradient(135deg, #6366f1, #a855f7)',
+                        cursor: !ffmpegLoaded ? 'wait' : 'pointer'
+                      }}
                       onClick={(e) => { e.stopPropagation(); handleUpload(); }}
                     >
-                      <Zap size={18} /> Start Deep Analysis
+                      {ffmpegLoaded ? <><Zap size={18} /> Start Deep Analysis</> : <><Loader2 size={18} className="spin" /> Warming up Studio...</>}
                     </button>
                   )}
                 </div>
