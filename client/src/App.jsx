@@ -151,7 +151,7 @@ function App() {
       // Header
       doc.setFontSize(22);
       doc.setTextColor(99, 102, 241);
-      doc.text('ClipSense AI Report', margin, y);
+      doc.text('VidSift AI Report', margin, y);
 
       y += 10;
       doc.setFontSize(10);
@@ -186,7 +186,7 @@ function App() {
         y += (splitText.length * 7) + 5;
       });
 
-      doc.save(`ClipSense_Report_${Date.now()}.pdf`);
+      doc.save(`VidSift_Report_${Date.now()}.pdf`);
     } catch (err) {
       console.error('PDF Export Error:', err);
       setError('Failed to generate PDF. Please try again.');
