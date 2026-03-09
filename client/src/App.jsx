@@ -28,7 +28,20 @@ function App() {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  // Protocol-aware API URL Resolution
+  const getBaseUrl = () => {
+    const envUrl = import.meta.env.VITE_API_URL;
+    if (envUrl) {
+      // Force HTTPS if the frontend is on HTTPS and env provides HTTP
+      if (window.location.protocol === 'https:' && envUrl.startsWith('http:')) {
+        return envUrl.replace('http:', 'https:');
+      }
+      return envUrl;
+    }
+    return 'http://localhost:5000';
+  };
+
+  const API_URL = getBaseUrl();
 
   const videoRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -230,6 +243,10 @@ function App() {
           <div className="logo-section">
             <img src={logo} alt="VidSift Logo" className="logo-img" />
             <h1 className="logo-text">VidSift</h1>
+            <div className={`status-badge ${serverHealth}`}>
+              <span className="status-dot"></span>
+              {serverHealth.toUpperCase()}
+            </div>
           </div>
           <p className="tagline">Local AI intelligence for your video archive. Extract moments that matter without sending data to the cloud.</p>
         </header>
