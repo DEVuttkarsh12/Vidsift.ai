@@ -32,13 +32,21 @@ function App() {
   // Protocol-aware API URL Resolution
   const getBaseUrl = () => {
     const envUrl = import.meta.env.VITE_API_URL;
+    const isProduction = window.location.hostname !== 'localhost';
+
     if (envUrl) {
-      // Force HTTPS if the frontend is on HTTPS and env provides HTTP
-      if (window.location.protocol === 'https:' && envUrl.startsWith('http:')) {
-        return envUrl.replace('http:', 'https:');
-      }
-      return envUrl;
+      const formattedUrl = (window.location.protocol === 'https:' && envUrl.startsWith('http:'))
+        ? envUrl.replace('http:', 'https:')
+        : envUrl;
+      console.log('Backend Bridge:', formattedUrl);
+      return formattedUrl;
     }
+
+    if (isProduction) {
+      console.error('CRITICAL: VITE_API_URL is missing in deployment environment variables!');
+      return 'https://error-missing-api-url.com'; // Trigger a more obvious failing URL
+    }
+
     return 'http://localhost:5000';
   };
 
