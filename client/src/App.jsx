@@ -265,28 +265,29 @@ function App() {
     const ffmpeg = ffmpegRef.current;
     const fileExt = file.name.split('.').pop();
     const inputName = `input.${fileExt}`;
-    const outputName = 'output.wav';
+    const outputName = 'output.mp3';
 
     try {
       console.log('Stage 1: Extracting Audio in Browser...');
       await ffmpeg.writeFile(inputName, await fetchFile(file));
 
-      // Extract audio: 16kHz, mono, WAV (Whisper standard)
+      // Extract audio: 16kHz, mono, MP3 at 32kbps for maximum length support (500MB+ videos)
       await ffmpeg.exec([
         '-i', inputName,
         '-ar', '16000',
         '-ac', '1',
+        '-b:a', '32k',
         '-vn',
         outputName
       ]);
 
       const data = await ffmpeg.readFile(outputName);
-      const audioBlob = new Blob([data.buffer], { type: 'audio/wav' });
+      const audioBlob = new Blob([data.buffer], { type: 'audio/mpeg' });
       setIsExtracting(false);
 
       console.log('Stage 2: Uploading small audio track to Backend...');
       const formData = new FormData();
-      formData.append('audio', audioBlob, 'audio.wav');
+      formData.append('audio', audioBlob, 'audio.mp3');
 
       const analyzeResponse = await fetch(`${API_URL}/api/analyze-audio`, {
         method: 'POST',
