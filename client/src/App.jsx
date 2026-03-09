@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { jsPDF } from 'jspdf';
+import { FFmpeg } from '@ffmpeg/ffmpeg';
+import { fetchFile, toBlobURL } from '@ffmpeg/util';
 import {
   Upload,
   Play,
@@ -14,7 +16,8 @@ import {
   Moon,
   Sun,
   ChevronRight,
-  Zap
+  Zap,
+  Music
 } from 'lucide-react';
 import logo from './assets/vidsift-final__1_-removebg-preview.png';
 import './index.css';
@@ -23,12 +26,43 @@ import './index.css';
 function App() {
   const [file, setFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [extractionProgress, setExtractionProgress] = useState(0);
+  const [isExtracting, setIsExtracting] = useState(false);
   const [videoUrl, setVideoUrl] = useState(null);
   const [transcript, setTranscript] = useState(null);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
   const [serverHealth, setServerHealth] = useState('checking'); // 'online' | 'offline' | 'checking'
+
+  const ffmpegRef = useRef(new FFmpeg());
+  const [ffmpegLoaded, setFfmpegLoaded] = useState(false);
+
+  // Initialize FFmpeg
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
+        const ffmpeg = ffmpegRef.current;
+        ffmpeg.on('log', ({ message }) => {
+          console.log('[FFMPEG]', message);
+        });
+        ffmpeg.on('progress', ({ progress }) => {
+          setExtractionProgress(Math.round(progress * 100));
+        });
+        await ffmpeg.load({
+          coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+          wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+        });
+        setFfmpegLoaded(true);
+        console.log('FFmpeg wasm loaded successfully.');
+      } catch (err) {
+        console.error('Failed to load FFmpeg wasm:', err);
+        setError('Your browser might not support local extraction. Please use Chrome/Edge.');
+      }
+    };
+    load();
+  }, []);
   // Protocol-aware API URL Resolution
   const getBaseUrl = () => {
     const envUrl = import.meta.env.VITE_API_URL;
@@ -163,72 +197,49 @@ function App() {
     const selectedFile = e.target.files[0];
     if (selectedFile) {
       setFile(selectedFile);
+      setVideoUrl(URL.createObjectURL(selectedFile)); // Local playback via Blob URL
       setError(null);
+      setTranscript(null);
     }
   };
 
   const handleUpload = async () => {
-    if (!file) return;
+    if (!file || !ffmpegLoaded) return;
 
     setIsUploading(true);
+    setIsExtracting(true);
+    setExtractionProgress(0);
     setError(null);
 
+    const ffmpeg = ffmpegRef.current;
+    const fileExt = file.name.split('.').pop();
+    const inputName = `input.${fileExt}`;
+    const outputName = 'output.wav';
+
     try {
-      console.log('Stage 1: Requesting signature from backend...');
-      const sigResponse = await fetch(`${API_URL}/api/generate-signature`);
-      if (!sigResponse.ok) throw new Error(`Backend Signature Error: ${sigResponse.status}`);
-      const sigData = await sigResponse.json();
-      console.log('Signature received:', sigData);
+      console.log('Stage 1: Extracting Audio in Browser...');
+      await ffmpeg.writeFile(inputName, await fetchFile(file));
 
-      console.log('Stage 2: Chunked Upload to Cloudinary (Resilient for >100MB)...');
-      const CHUNK_SIZE = 20 * 1024 * 1024; // 20MB Chunks
-      const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-      const uniqueUploadId = btoa(Date.now() + sigData.api_key).substring(0, 16);
-      let videoUrl = '';
+      // Extract audio: 16kHz, mono, WAV (Whisper standard)
+      await ffmpeg.exec([
+        '-i', inputName,
+        '-ar', '16000',
+        '-ac', '1',
+        '-vn',
+        outputName
+      ]);
 
-      for (let i = 0; i < totalChunks; i++) {
-        const start = i * CHUNK_SIZE;
-        const end = Math.min(start + CHUNK_SIZE, file.size);
-        const chunk = file.slice(start, end);
+      const data = await ffmpeg.readFile(outputName);
+      const audioBlob = new Blob([data.buffer], { type: 'audio/wav' });
+      setIsExtracting(false);
 
-        console.log(`Uploading chunk ${i + 1}/${totalChunks} (${(start / 1024 / 1024).toFixed(1)}MB - ${(end / 1024 / 1024).toFixed(1)}MB)`);
+      console.log('Stage 2: Uploading small audio track to Backend...');
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'audio.wav');
 
-        const formData = new FormData();
-        formData.append('file', chunk);
-        formData.append('signature', sigData.signature);
-        formData.append('timestamp', sigData.timestamp);
-        formData.append('api_key', sigData.api_key);
-        formData.append('folder', sigData.folder);
-
-        const cloudResponse = await fetch(
-          `https://api.cloudinary.com/v1_1/${sigData.cloud_name}/video/upload`,
-          {
-            method: 'POST',
-            body: formData,
-            headers: {
-              'X-Unique-Upload-Id': uniqueUploadId,
-              'Content-Range': `bytes ${start}-${end - 1}/${file.size}`
-            }
-          }
-        );
-
-        if (!cloudResponse.ok) {
-          const cloudError = await cloudResponse.json().catch(() => ({}));
-          throw new Error(`Cloudinary Chunk ${i + 1} Error: ${cloudError.error?.message || 'Chunk upload failed'}`);
-        }
-
-        const cloudData = await cloudResponse.json();
-        if (i === totalChunks - 1) {
-          videoUrl = cloudData.secure_url;
-          console.log('Final construction complete:', videoUrl);
-        }
-      }
-
-      console.log('Stage 3: Initiating backend analysis...');
-      const analyzeResponse = await fetch(`${API_URL}/api/analyze-cloudinary`, {
+      const analyzeResponse = await fetch(`${API_URL}/api/analyze-audio`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ videoUrl }),
+        body: formData,
       });
 
       if (!analyzeResponse.ok) {
@@ -239,7 +250,7 @@ function App() {
       const { jobId } = await analyzeResponse.json();
       console.log('Job initiated:', jobId);
 
-      // 4. Poll for results (This bypasses any connection timeouts)
+      // 3. Poll for results 
       let isCompleted = false;
       while (!isCompleted) {
         console.log(`Polling job status: ${jobId}...`);
@@ -250,28 +261,25 @@ function App() {
 
         if (job.status === 'completed') {
           console.log('Job finished successfully!');
-          setVideoUrl(job.videoUrl);
           setTranscript(job.transcript);
           isCompleted = true;
         } else if (job.status === 'error') {
           throw new Error(job.message || 'Transcription failed unexpectedly');
         } else {
-          // Still processing... wait 3 seconds before next poll
           await new Promise(r => setTimeout(r, 3000));
         }
       }
 
     } catch (err) {
-      console.error('Final Upload Error Context:', err);
-      let msg = `Upload Failed: ${err.message}`;
-
+      console.error('Ultima Fix Error Context:', err);
+      let msg = `Processing Failed: ${err.message}`;
       if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
-        msg = "Network Error: The server is unreachable. This usually means the server CRASHED due to high memory usage OR your API URL is incorrect. Check Railway logs for 'Out of Memory' errors.";
+        msg = "Network Error: Could not connect to the server. Check if the backend is online.";
       }
-
       setError(msg);
     } finally {
       setIsUploading(false);
+      setIsExtracting(false);
     }
   };
 
