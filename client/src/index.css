@@ -193,6 +193,8 @@ body {
   color: var(--text-muted);
   border: 1px solid var(--border);
   transition: all 0.3s ease;
+  width: fit-content;
+  margin: 0 auto;
 }
 
 .status-badge.online {

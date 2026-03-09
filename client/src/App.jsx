@@ -349,14 +349,14 @@ function App() {
           <div className="logo-section">
             <img src={logo} alt="VidSift Logo" className="logo-img" />
             <h1 className="logo-text">VidSift</h1>
-            <div className={`status-badge ${serverHealth}`}>
-              <span className="status-dot"></span>
-              {serverHealth.toUpperCase()}
-            </div>
           </div>
           <p className="tagline" style={{ fontFamily: 'Inter', fontWeight: 300, fontSize: '0.9rem', letterSpacing: '0.05em', opacity: 0.5 }}>
             PROFESSIONAL AUDIO-TO-SCRIPT WORKFLOW
           </p>
+          <div className={`status-badge ${serverHealth}`} style={{ marginTop: '2rem' }}>
+            <span className="status-dot"></span>
+            {serverHealth.toUpperCase()}
+          </div>
         </header>
 
         {error && (
