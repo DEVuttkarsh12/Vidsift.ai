@@ -1,23 +1,25 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Outfit:wght@100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,100..900&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Outfit:wght@100..900&display=swap');
 
 :root {
-  --theme-transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  --theme-transition: all 1s cubic-bezier(0.16, 1, 0.3, 1);
 
-  --radius-xl: 3rem;
-  --radius-lg: 2rem;
-  --radius-md: 1.5rem;
+  --radius-xl: 4rem;
+  /* More organic, softer curves */
+  --radius-lg: 3rem;
+  --radius-md: 2rem;
 
   --glass-blur: none;
-  /* Removed for performance */
-  --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+  --glass-border: 1px solid rgba(255, 255, 255, 0.08);
 
-  /* Minimal Palette */
-  --primary: #8B5CF6;
-  --accent: #A78BFA;
-  --text-main: #FFFFFF;
-  --text-muted: #888888;
-  --bg-dark: #050505;
-  --bg-surface: #111111;
+  /* Warm Human Palette */
+  --primary: #f0abfc;
+  /* Warmer orchid */
+  --accent: #fdba74;
+  /* Warm peach */
+  --text-main: #f9fafb;
+  --text-muted: #94a3b8;
+  --bg-dark: #0a0a0c;
+  --bg-surface: #121216;
   --bg-card: rgba(255, 255, 255, 0.03);
   --border: rgba(255, 255, 255, 0.1);
 }
@@ -52,26 +54,24 @@ body {
   letter-spacing: -0.02em;
 }
 
-/* Texture Overlay Removed for Performance */
+/* Tactile Texture Layer */
+.grain-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
 
-/* High-Performance Background Design */
 .bg-mesh {
   position: fixed;
   inset: 0;
   z-index: -1;
-  background: radial-gradient(circle at 10% 10%, rgba(139, 92, 246, 0.08) 0%, transparent 40%),
-    radial-gradient(circle at 90% 90%, rgba(6, 182, 212, 0.08) 0%, transparent 40%),
+  background:
+    radial-gradient(circle at 10% 10%, rgba(240, 171, 252, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 90% 90%, rgba(253, 186, 116, 0.08) 0%, transparent 40%),
     var(--bg-dark);
-}
-
-[data-theme='light'] .bg-mesh {
-  background: radial-gradient(circle at 10% 10%, rgba(79, 70, 229, 0.05) 0%, transparent 40%),
-    radial-gradient(circle at 90% 90%, rgba(6, 182, 212, 0.05) 0%, transparent 40%),
-    var(--bg-dark);
-}
-
-.bg-sphere {
-  display: none;
 }
 
 /* Zero GPU load */

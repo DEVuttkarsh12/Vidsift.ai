@@ -338,8 +338,8 @@ function App() {
   return (
     <div className="app-root">
       {/* Dynamic Background Elements */}
-      <div className="bg-mesh">
-      </div>
+      <div className="bg-mesh"></div>
+      <div className="grain-overlay"></div>
 
       {/* Theme Control */}
       <button className="theme-toggle" onClick={toggleTheme} aria-label="Toggle Theme">
@@ -356,7 +356,9 @@ function App() {
               {serverHealth.toUpperCase()}
             </div>
           </div>
-          <p className="tagline">Local AI intelligence for your video archive. Extract moments that matter without sending data to the cloud.</p>
+          <p className="tagline" style={{ fontFamily: 'Fraunces', fontStyle: 'italic', fontWeight: 200 }}>
+            Preserving your human moments with local privacy.
+          </p>
         </header>
 
         {error && (
@@ -370,7 +372,7 @@ function App() {
           {/* Analysis View */}
           <div className="main-col reveal delay-1">
             <div className="designer-card">
-              <span className="card-label">Media Source</span>
+              <span className="card-label">Your Video Capsule</span>
 
               {(!videoUrl || (file && !transcript && !isUploading)) && (
                 <div
@@ -435,7 +437,7 @@ function App() {
           {/* Insights View */}
           <div className="side-col reveal delay-2">
             <div className="designer-card">
-              <span className="card-label">Intelligence Report</span>
+              <span className="card-label">Captured Moments</span>
 
               <div className="refined-transcript-area">
                 {transcript ? (
