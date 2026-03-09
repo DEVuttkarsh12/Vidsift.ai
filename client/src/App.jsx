@@ -354,8 +354,8 @@ function App() {
               {serverHealth.toUpperCase()}
             </div>
           </div>
-          <p className="tagline" style={{ fontFamily: 'Fraunces', fontStyle: 'italic', fontWeight: 200 }}>
-            Preserving your human moments with local privacy.
+          <p className="tagline" style={{ fontFamily: 'Inter', fontWeight: 300, fontSize: '0.9rem', letterSpacing: '0.05em', opacity: 0.5 }}>
+            PROFESSIONAL AUDIO-TO-SCRIPT WORKFLOW
           </p>
         </header>
 
@@ -370,7 +370,7 @@ function App() {
           {/* Analysis View */}
           <div className="main-col reveal delay-1">
             <div className="designer-card">
-              <span className="card-label">Your Video Capsule</span>
+              <span className="card-label">MASTER MONITOR</span>
 
               {(!videoUrl || (file && !transcript && !isUploading)) && (
                 <div
@@ -435,7 +435,7 @@ function App() {
           {/* Insights View */}
           <div className="side-col reveal delay-2">
             <div className="designer-card">
-              <span className="card-label">Captured Moments</span>
+              <span className="card-label">SCRIPT TIMELINE</span>
 
               <div className="refined-transcript-area">
                 {transcript ? (

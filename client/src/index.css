@@ -1,27 +1,25 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,100..900&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Outfit:wght@100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,100..900&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=JetBrains+Mono:wght@100..800&family=Outfit:wght@100..900&display=swap');
 
 :root {
-  --theme-transition: all 1s cubic-bezier(0.16, 1, 0.3, 1);
+  --theme-transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 
-  --radius-xl: 4rem;
-  /* More organic, softer curves */
-  --radius-lg: 3rem;
-  --radius-md: 2rem;
+  --radius-xl: 1rem;
+  /* Sharp, pro studio feel */
+  --radius-lg: 0.75rem;
+  --radius-md: 0.5rem;
 
   --glass-blur: none;
-  --glass-border: 1px solid rgba(255, 255, 255, 0.08);
+  --glass-border: 1px solid rgba(255, 255, 255, 0.05);
 
-  /* Warm Human Palette */
+  /* Studio Obsidian Palette */
   --primary: #f0abfc;
-  /* Warmer orchid */
   --accent: #fdba74;
-  /* Warm peach */
   --text-main: #f9fafb;
-  --text-muted: #94a3b8;
-  --bg-dark: #0a0a0c;
-  --bg-surface: #121216;
-  --bg-card: rgba(255, 255, 255, 0.03);
-  --border: rgba(255, 255, 255, 0.1);
+  --text-muted: #64748b;
+  --bg-dark: #08080a;
+  --bg-surface: #141416;
+  --bg-panel: #1a1a1e;
+  --border: rgba(255, 255, 255, 0.04);
 }
 
 [data-theme='light'] {
@@ -251,43 +249,49 @@ body {
 
 /* Components - Floating Glass */
 .designer-card {
-  background: var(--bg-card);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
   border-radius: var(--radius-xl);
-  padding: 5rem;
-  margin-bottom: 8rem;
+  padding: 3rem;
+  margin-bottom: 4rem;
   transition: var(--theme-transition);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset;
+  position: relative;
+  overflow: hidden;
 }
 
 [data-theme='dark'] .designer-card {
-  background: #0d0d0f;
-  box-shadow:
-    0 10px 40px -10px rgba(0, 0, 0, 0.5),
-    0 0 0 1px rgba(255, 255, 255, 0.02);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
 }
 
-.designer-card:hover {
-  background: rgba(255, 255, 255, 0.02);
-  border-color: rgba(255, 255, 255, 0.15);
-  transform: scale(0.99);
-  /* Sophisticated inward scale */
-}
-
-[data-theme='light'] .designer-card:hover {
-  background: rgba(255, 255, 255, 0.9);
-  border-color: rgba(0, 0, 0, 0.1);
+.designer-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0.1;
 }
 
 .card-label {
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.4em;
-  color: var(--text-muted);
-  margin-bottom: 4rem;
-  display: block;
-  opacity: 0.6;
+  letter-spacing: 0.3em;
+  color: var(--accent);
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.card-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
 }
 
 /* Buttons - Minimalist Tangible */
@@ -466,19 +470,25 @@ body {
 }
 
 .item-time {
-  font-family: 'Outfit', sans-serif;
-  font-weight: 300;
-  font-size: 0.9rem;
-  color: var(--text-muted);
-  margin-right: 4rem;
-  min-width: 80px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 400;
+  font-size: 0.75rem;
+  color: var(--accent);
+  opacity: 0.6;
+  margin-right: 3rem;
+  min-width: 70px;
+  padding: 0.2rem 0.5rem;
+  background: rgba(253, 186, 116, 0.05);
+  border-radius: 4px;
 }
 
 .item-text {
-  font-size: 1.5rem;
-  /* Larger, dramatic text */
-  font-weight: 200;
-  line-height: 1.2;
+  font-family: 'Fraunces', serif;
+  font-size: 1.2rem;
+  font-weight: 300;
+  line-height: 1.6;
+  color: var(--text-main);
+  opacity: 0.9;
 }
 
 .extract-btn {
