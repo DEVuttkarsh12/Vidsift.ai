@@ -28,6 +28,7 @@ function App() {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
+  const [serverHealth, setServerHealth] = useState('checking'); // 'online' | 'offline' | 'checking'
   // Protocol-aware API URL Resolution
   const getBaseUrl = () => {
     const envUrl = import.meta.env.VITE_API_URL;
@@ -54,6 +55,23 @@ function App() {
   const toggleTheme = () => {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   };
+
+  // Server Health Monitoring
+  useEffect(() => {
+    const checkHealth = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/health`);
+        if (res.ok) setServerHealth('online');
+        else setServerHealth('offline');
+      } catch {
+        setServerHealth('offline');
+      }
+    };
+
+    checkHealth();
+    const interval = setInterval(checkHealth, 30000); // Check every 30s
+    return () => clearInterval(interval);
+  }, [API_URL]);
   const formatTime = (time) => {
     if (typeof time === 'string') return time;
     const minutes = Math.floor(time / 60);
