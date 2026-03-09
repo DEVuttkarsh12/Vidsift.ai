@@ -118,7 +118,6 @@ app.post('/api/upload', (req, res) => {
                 details: error.stack
             });
         }
-    }
     });
 });
 
