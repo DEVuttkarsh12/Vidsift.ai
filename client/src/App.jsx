@@ -337,9 +337,7 @@ function App() {
 
   return (
     <div className="app-root">
-      {/* Dynamic Background Elements */}
       <div className="bg-mesh"></div>
-      <div className="grain-overlay"></div>
 
       {/* Theme Control */}
       <button className="theme-toggle" onClick={toggleTheme} aria-label="Toggle Theme">
