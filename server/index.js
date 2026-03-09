@@ -20,13 +20,11 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors()); // Temporarily allow all origins to rule out CORS issues
-app.use(express.json());
+// Middleware
+app.use(cors());
+app.use(express.json({ limit: '500mb' }));
+app.use(express.urlencoded({ extended: true, limit: '500mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// Increase payload limits for video uploads
-app.use(express.urlencoded({ extended: true, limit: '200mb' }));
-app.use(express.json({ limit: '200mb' }));
 
 // Ensure uploads directory exists (used as temp storage)
 const uploadDir = path.join(__dirname, 'uploads');
@@ -46,7 +44,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
     storage: storage,
-    limits: { fileSize: 200 * 1024 * 1024 }, // 200MB limit
+    limits: { fileSize: 500 * 1024 * 1024 }, // 500MB limit
     fileFilter: (req, file, cb) => {
         const filetypes = /mp4|mov|avi|mkv/;
         const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
@@ -60,56 +58,68 @@ const upload = multer({
 });
 
 // Routes
-app.post('/api/upload', upload.single('video'), async (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ message: 'No file uploaded' });
+app.post('/api/upload', (req, res) => {
+    upload.single('video')(req, res, async (err) => {
+        if (err instanceof multer.MulterError) {
+            if (err.code === 'LIMIT_FILE_SIZE') {
+                return res.status(413).json({ message: 'File too large. Max limit is 500MB.' });
+            }
+            return res.status(400).json({ message: `Upload Error: ${err.message}` });
+        } else if (err) {
+            return res.status(500).json({ message: `Server Error: ${err.message}` });
+        }
+
+        if (!req.file) {
+            return res.status(400).json({ message: 'No file uploaded' });
+        }
+
+        let localVideoPath = req.file.path;
+        let localAudioPath = null;
+
+        try {
+            console.log('Uploading video to Cloudinary...');
+            const cloudVideo = await cloudinary.uploader.upload(localVideoPath, {
+                resource_type: "video",
+                folder: "clipsense_uploads"
+            });
+            console.log('Cloudinary upload complete:', cloudVideo.secure_url);
+
+            // Extract audio from the local temp video
+            console.log('Extracting audio locally...');
+            localAudioPath = await extractAudio(localVideoPath, uploadDir);
+
+            // Transcribe audio using local Whisper
+            console.log('Transcribing audio...');
+            const transcript = await transcribeAudio(localAudioPath);
+            console.log('Transcription complete.');
+
+            // Cleanup local files
+            fs.unlink(localVideoPath, (err) => {
+                if (err) console.error('Error deleting local video:', err);
+            });
+            fs.unlink(localAudioPath, (err) => {
+                if (err) console.error('Error deleting local audio:', err);
+            });
+
+            res.status(200).json({
+                message: 'Analysis complete and synced to cloud',
+                videoUrl: cloudVideo.secure_url,
+                transcript: transcript
+            });
+        } catch (error) {
+            console.error('Server error:', error);
+
+            // Cleanup on error
+            if (fs.existsSync(localVideoPath)) fs.unlinkSync(localVideoPath);
+            if (localAudioPath && fs.existsSync(localAudioPath)) fs.unlinkSync(localAudioPath);
+
+            res.status(500).json({
+                message: `Server Error: ${error.message}`,
+                details: error.stack
+            });
+        }
     }
-
-    let localVideoPath = req.file.path;
-    let localAudioPath = null;
-
-    try {
-        console.log('Uploading video to Cloudinary...');
-        const cloudVideo = await cloudinary.uploader.upload(localVideoPath, {
-            resource_type: "video",
-            folder: "clipsense_uploads"
-        });
-        console.log('Cloudinary upload complete:', cloudVideo.secure_url);
-
-        // Extract audio from the local temp video
-        console.log('Extracting audio locally...');
-        localAudioPath = await extractAudio(localVideoPath, uploadDir);
-
-        // Transcribe audio using local Whisper
-        console.log('Transcribing audio...');
-        const transcript = await transcribeAudio(localAudioPath);
-        console.log('Transcription complete.');
-
-        // Cleanup local files
-        fs.unlink(localVideoPath, (err) => {
-            if (err) console.error('Error deleting local video:', err);
-        });
-        fs.unlink(localAudioPath, (err) => {
-            if (err) console.error('Error deleting local audio:', err);
-        });
-
-        res.status(200).json({
-            message: 'Analysis complete and synced to cloud',
-            videoUrl: cloudVideo.secure_url,
-            transcript: transcript
-        });
-    } catch (error) {
-        console.error('Server error:', error);
-
-        // Cleanup on error
-        if (fs.existsSync(localVideoPath)) fs.unlinkSync(localVideoPath);
-        if (localAudioPath && fs.existsSync(localAudioPath)) fs.unlinkSync(localAudioPath);
-
-        res.status(500).json({
-            message: `Server Error: ${error.message}`,
-            details: error.stack
-        });
-    }
+    });
 });
 
 app.get('/api/download-clip', async (req, res) => {
