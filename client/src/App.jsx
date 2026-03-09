@@ -134,26 +134,52 @@ function App() {
     setIsUploading(true);
     setError(null);
 
-    const formData = new FormData();
-    formData.append('video', file);
-
     try {
-      const response = await fetch(`${API_URL}/api/upload`, {
-        method: 'POST',
-        body: formData,
-      });
+      // 1. Get Signed Upload Signature from our backend
+      const sigResponse = await fetch(`${API_URL}/api/generate-signature`);
+      if (!sigResponse.ok) throw new Error('Failed to get upload authorization');
+      const sigData = await sigResponse.json();
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Analysis failed. The server might be busy or restarting.');
+      // 2. Upload directly to Cloudinary (Bypasses Railway 100MB limit)
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('signature', sigData.signature);
+      formData.append('timestamp', sigData.timestamp);
+      formData.append('api_key', sigData.api_key);
+      formData.append('folder', sigData.folder);
+
+      const cloudResponse = await fetch(
+        `https://api.cloudinary.com/v1_1/${sigData.cloud_name}/video/upload`,
+        { method: 'POST', body: formData }
+      );
+
+      if (!cloudResponse.ok) {
+        const cloudError = await cloudResponse.json();
+        throw new Error(`Cloudinary Error: ${cloudError.error?.message || 'Cloud upload failed'}`);
       }
 
-      const data = await response.json();
+      const cloudData = await cloudResponse.json();
+      const videoUrl = cloudData.secure_url;
+
+      // 3. Send the Cloudinary URL to our backend for local transcription
+      const analyzeResponse = await fetch(`${API_URL}/api/analyze-cloudinary`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoUrl }),
+      });
+
+      if (!analyzeResponse.ok) {
+        const errorData = await analyzeResponse.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Server analysis failed.');
+      }
+
+      const data = await analyzeResponse.json();
       setVideoUrl(data.videoUrl);
       setTranscript(data.transcript);
+
     } catch (err) {
       console.error('Upload Error:', err);
-      setError(`Connection Error: ${err.message}. Check if the backend URL is correct and the server is running.`);
+      setError(`Upload Failed: ${err.message}`);
     } finally {
       setIsUploading(false);
     }

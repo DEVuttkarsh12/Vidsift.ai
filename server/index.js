@@ -58,6 +58,54 @@ const upload = multer({
 });
 
 // Routes
+
+// 1. Generate Signature for Direct-to-Cloud Upload
+app.get('/api/generate-signature', (req, res) => {
+    const timestamp = Math.round(new Date().getTime() / 1000);
+    const signature = cloudinary.utils.api_sign_request({
+        timestamp: timestamp,
+        folder: 'vidsift_uploads',
+    }, process.env.CLOUDINARY_API_SECRET);
+
+    res.json({
+        signature,
+        timestamp,
+        cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+        api_key: process.env.CLOUDINARY_API_KEY,
+        folder: 'vidsift_uploads'
+    });
+});
+
+// 2. Analyze Cloudinary URL (Direct-to-Cloud Flow)
+app.post('/api/analyze-cloudinary', async (req, res) => {
+    const { videoUrl } = req.body;
+    if (!videoUrl) return res.status(400).json({ message: 'Missing videoUrl' });
+
+    let localAudioPath = null;
+    try {
+        console.log('Processing remote video from Cloudinary...');
+        // FFmpeg can read directly from the URL
+        localAudioPath = await extractAudio(videoUrl, uploadDir);
+
+        console.log('Transcribing audio...');
+        const transcript = await transcribeAudio(localAudioPath);
+
+        // Cleanup local audio
+        if (fs.existsSync(localAudioPath)) fs.unlinkSync(localAudioPath);
+
+        res.json({
+            message: 'Analysis complete',
+            videoUrl: videoUrl,
+            transcript: transcript
+        });
+    } catch (error) {
+        console.error('Remote processing error:', error);
+        if (localAudioPath && fs.existsSync(localAudioPath)) fs.unlinkSync(localAudioPath);
+        res.status(500).json({ message: `Processing Error: ${error.message}` });
+    }
+});
+
+// 3. Legacy Upload (Keep for safety/small files fallback if needed)
 app.post('/api/upload', (req, res) => {
     upload.single('video')(req, res, async (err) => {
         if (err instanceof multer.MulterError) {
