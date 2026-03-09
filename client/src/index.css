@@ -411,6 +411,42 @@ body {
 .refined-transcript-list {
   display: flex;
   flex-direction: column;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 1.5rem;
+  mask-image: linear-gradient(to bottom,
+      transparent,
+      black 5%,
+      black 95%,
+      transparent);
+}
+
+/* Premium Scrollbar - Kinetic Style */
+.refined-transcript-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.refined-transcript-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 10px;
+}
+
+.refined-transcript-list::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.1));
+  border-radius: 10px;
+  transition: all 0.5s ease;
+}
+
+.refined-transcript-list::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(99, 102, 241, 0.5), rgba(168, 85, 247, 0.5));
+}
+
+[data-theme='light'] .refined-transcript-list::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+[data-theme='light'] .refined-transcript-list::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
 }
 
 .refined-transcript-item {
