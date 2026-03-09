@@ -202,11 +202,13 @@ function App() {
 
     } catch (err) {
       console.error('Final Upload Error Context:', err);
+      let msg = `Upload Failed: ${err.message}`;
+
       if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
-        setError("Network Error: Could not connect to the server. Please check your internet or if the server is offline.");
-      } else {
-        setError(`Upload Failed: ${err.message}`);
+        msg = "Network Error: The server is unreachable. This usually means the server CRASHED due to high memory usage OR your API URL is incorrect. Check Railway logs for 'Out of Memory' errors.";
       }
+
+      setError(msg);
     } finally {
       setIsUploading(false);
     }

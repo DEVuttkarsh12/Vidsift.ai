@@ -128,6 +128,11 @@ app.get('/api/job-status/:id', (req, res) => {
     res.json(job);
 });
 
+// 4. Health Check
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', uptime: process.uptime(), memory: process.memoryUsage() });
+});
+
 // 3. Legacy Upload (Keep for safety/small files fallback if needed)
 app.post('/api/upload', (req, res) => {
     upload.single('video')(req, res, async (err) => {

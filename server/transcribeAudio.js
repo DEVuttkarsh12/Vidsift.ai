@@ -22,13 +22,14 @@ async function transcribeAudio(audioPath) {
                 text: segment.text.trim()
             }));
         } catch (error) {
-            console.error('Groq API Error, falling back to local if possible:', error.message);
-            if (!process.env.RAILWAY_ENVIRONMENT) {
-                return fallbackToLocal(audioPath);
-            }
-            throw error;
+            console.error('Groq API Error:', error.message);
+            throw new Error(`Cloud Transcription Failed: ${error.message}. Please check your Groq API quota and limits.`);
         }
     } else {
+        // Enforce cloud-only for production to prevent OOM
+        if (process.env.RAILWAY_STATIC_URL || process.env.NODE_ENV === 'production') {
+            throw new Error("GROQ_API_KEY is missing. Local transcription is disabled in production to prevent crashes. Please add GROQ_API_KEY to your Railway variables.");
+        }
         return fallbackToLocal(audioPath);
     }
 }
