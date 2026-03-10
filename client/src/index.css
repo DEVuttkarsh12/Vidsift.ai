@@ -212,13 +212,67 @@ body {
   opacity: 0.3;
 }
 
-/* Script Items - The Digital Essay Look */
-.script-segment {
-  padding: 2.5rem 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-  cursor: pointer;
-  transition: all 0.4s ease;
+/* --- ADVANCED STUDIO SEARCH --- */
+
+.studio-search-container {
+  margin-bottom: 2rem;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.studio-search-wrapper {
   position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  padding: 0 1.5rem;
+  height: 60px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  transition: all 0.4s ease;
+}
+
+.studio-search-wrapper:focus-within {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(253, 186, 116, 0.3);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+}
+
+.search-icon {
+  color: var(--accent);
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+}
+
+.studio-search-wrapper:focus-within .search-icon {
+  opacity: 1;
+}
+
+.search-field-elite {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-main);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9rem;
+  font-weight: 300;
+  outline: none;
+  letter-spacing: 0.05em;
+}
+
+.search-key-hint {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  padding: 0.4rem 0.6rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  opacity: 0.4;
+  pointer-events: none;
 }
 
 .script-segment:hover {

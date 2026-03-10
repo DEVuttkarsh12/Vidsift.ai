@@ -261,14 +261,18 @@ function App() {
             {/* Script Timeline */}
             <div className="elite-panel timeline-panel">
               <span className="segment-meta">Script Timeline</span>
-              <div style={{ marginBottom: '2rem' }}>
-                <input
-                  className="search-field"
-                  placeholder="Filter segments..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  style={{ width: '100%', marginBottom: '1rem' }}
-                />
+              <div className="studio-search-container">
+                <div className="studio-search-wrapper">
+                  <Search size={18} className="search-icon" />
+                  <input
+                    className="search-field-elite"
+                    type="text"
+                    placeholder="Refine segments..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                  <div className="search-key-hint">CMD+F</div>
+                </div>
               </div>
               <div className="timeline-scroll">
                 {filteredTranscript.map((item, index) => (
