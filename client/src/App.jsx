@@ -119,8 +119,22 @@ function App() {
       });
 
       if (!response.ok) throw new Error('Studio analysis failed.');
-      const data = await response.json();
-      setTranscript(data.transcript);
+      const { jobId } = await response.json();
+
+      // Poll for job completion
+      let completed = false;
+      while (!completed) {
+        await new Promise(r => setTimeout(r, 2000));
+        const statusRes = await fetch(`${API_URL}/api/job-status/${jobId}`);
+        const job = await statusRes.json();
+
+        if (job.status === 'completed') {
+          setTranscript(job.transcript);
+          completed = true;
+        } else if (job.status === 'error') {
+          throw new Error(job.message || 'Analysis failed.');
+        }
+      }
     } catch (err) {
       setError(err.message);
     } finally {
