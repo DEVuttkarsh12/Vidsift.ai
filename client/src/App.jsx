@@ -13,8 +13,6 @@ import {
   CheckCircle2,
   AlertCircle,
   Scissors,
-  Moon,
-  Sun,
   Zap,
   Music,
   Maximize2
@@ -32,7 +30,6 @@ function App() {
   const [transcript, setTranscript] = useState(null);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
   const [serverHealth, setServerHealth] = useState('checking');
 
   const ffmpegRef = useRef(new FFmpeg());
@@ -65,13 +62,6 @@ function App() {
     return window.location.hostname !== 'localhost' ? 'https://error-missing-api-url.com' : 'http://localhost:5000';
   };
   const API_URL = getBaseUrl();
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('theme', theme);
-  }, [theme]);
-
-  const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -216,10 +206,6 @@ function App() {
           />
         )}
       </div>
-
-      <button className="theme-toggle-elite" onClick={toggleTheme}>
-        {theme === 'dark' ? <Sun size={24} /> : <Moon size={24} />}
-      </button>
 
       <div className="container">
         {/* Elite Header */}

@@ -21,23 +21,6 @@
   --border-glow: rgba(255, 255, 255, 0.05);
 }
 
-[data-theme='light'] {
-  --glass-bg: rgba(255, 255, 255, 0.8);
-  --glass-border: 1px solid rgba(0, 0, 0, 0.08);
-  --bg-dark: #fafaf9;
-  /* Stone White */
-  --text-main: #18181b;
-  /* Zinc 900 */
-  --text-muted: #52525b;
-  /* Zinc 600 */
-  --primary: #4f46e5;
-  /* Indigo */
-  --accent: #c2410c;
-  /* High-end Terracotta */
-  --panel-shadow: 0 50px 100px -20px rgba(0, 0, 0, 0.08);
-  --border-glow: rgba(0, 0, 0, 0.05);
-}
-
 * {
   margin: 0;
   padding: 0;
@@ -433,24 +416,6 @@ body {
   filter: invert(1);
 }
 
-/* Theme Toggle Elite */
-.theme-toggle-elite {
-  position: fixed;
-  top: 3rem;
-  right: 3rem;
-  z-index: 1000;
-  background: transparent;
-  border: none;
-  color: var(--text-main);
-  cursor: pointer;
-  opacity: 0.5;
-  transition: 0.3s;
-}
-
-.theme-toggle-elite:hover {
-  opacity: 1;
-}
-
 /* Animations */
 .reveal {
   animation: reveal 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -475,52 +440,4 @@ body {
 
 .delay-2 {
   animation-delay: 0.4s;
-}
-
-/* --- LIGHT THEME OPTIMIZATIONS --- */
-
-[data-theme='light'] .cinematic-bg-video {
-  opacity: 0.1;
-  filter: grayscale(0.5) brightness(1.2) blur(40px);
-}
-
-[data-theme='light'] .logo-text-elite {
-  background: linear-gradient(to bottom, #18181b, #52525b);
-  -webkit-background-clip: text;
-  background-clip: text;
-  filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.05));
-}
-
-[data-theme='light'] .studio-search-wrapper {
-  background: rgba(255, 255, 255, 0.4);
-  border-color: rgba(0, 0, 0, 0.05);
-}
-
-[data-theme='light'] .studio-search-wrapper:focus-within {
-  background: #ffffff;
-  border-color: var(--accent);
-}
-
-[data-theme='light'] .btn-mini {
-  border-color: rgba(0, 0, 0, 0.1);
-  color: var(--text-main);
-}
-
-[data-theme='light'] .export-btn-studio {
-  background: rgba(0, 0, 0, 0.02);
-  border-color: rgba(194, 65, 12, 0.2);
-}
-
-[data-theme='light'] .export-btn-studio:hover {
-  background: var(--accent);
-  color: #fff;
-}
-
-[data-theme='light'] .script-segment {
-  border-bottom-color: rgba(0, 0, 0, 0.05);
-}
-
-[data-theme='light'] .timeline-scroll::-webkit-scrollbar-thumb {
-  background: var(--accent);
-  opacity: 0.5;
 }
