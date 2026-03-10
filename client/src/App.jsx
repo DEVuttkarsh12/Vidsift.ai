@@ -336,8 +336,14 @@ function App() {
   };
 
   return (
-    <div className="app-root">
+    <div className={`app-root ${videoUrl ? 'cinematic-mode' : ''}`}>
       <div className="bg-mesh"></div>
+
+      {videoUrl && (
+        <div className="cinematic-video-bg">
+          <video src={videoUrl.startsWith('blob:') || videoUrl.startsWith('http') ? videoUrl : `${API_URL}${videoUrl}`} muted autoPlay loop />
+        </div>
+      )}
 
       {/* Theme Control */}
       <button className="theme-toggle" onClick={toggleTheme} aria-label="Toggle Theme">
@@ -345,15 +351,15 @@ function App() {
       </button>
 
       <div className="container">
-        <header className="header reveal">
+        <header className="header reveal frosted-glass" style={{ padding: '2rem', borderRadius: '0 0 var(--radius-xl) var(--radius-xl)', marginBottom: '4rem' }}>
           <div className="logo-section">
             <img src={logo} alt="VidSift Logo" className="logo-img" />
             <h1 className="logo-text">VidSift</h1>
           </div>
-          <p className="tagline" style={{ fontFamily: 'Inter', fontWeight: 300, fontSize: '0.9rem', letterSpacing: '0.05em', opacity: 0.5 }}>
+          <p className="tagline">
             PROFESSIONAL AUDIO-TO-SCRIPT WORKFLOW
           </p>
-          <div className={`status-badge ${serverHealth}`} style={{ marginTop: '2rem' }}>
+          <div className={`status-badge ${serverHealth}`} style={{ marginTop: '1.5rem' }}>
             <span className="status-dot"></span>
             {serverHealth.toUpperCase()}
           </div>
