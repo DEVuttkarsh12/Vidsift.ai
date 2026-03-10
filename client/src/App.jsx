@@ -260,7 +260,12 @@ function App() {
 
             {/* Script Timeline */}
             <div className="elite-panel timeline-panel">
-              <span className="segment-meta">Script Timeline</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                <span className="segment-meta" style={{ marginBottom: 0 }}>Script Timeline</span>
+                <button className="export-btn-studio" onClick={handleExportTranscript}>
+                  <Download size={14} /> EXPORT REPORT
+                </button>
+              </div>
               <div className="studio-search-container">
                 <div className="studio-search-wrapper">
                   <Search size={18} className="search-icon" />
