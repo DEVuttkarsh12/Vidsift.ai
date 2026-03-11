@@ -87,16 +87,25 @@ function App() {
   };
 
   const handleUpload = async () => {
-    if (!file) return;
+    if (!file || !ffmpegLoaded) return;
     setIsUploading(true);
     setIsExtracting(true);
     setError(null);
 
     try {
       const ffmpeg = ffmpegRef.current;
+      
+      // Clean up any previous mount session to prevent collisions
+      try {
+        await ffmpeg.unmount('/mnt');
+      } catch (e) {
+        // Safe to ignore if /mnt wasn't mounted
+      }
+
       // Mount the file using WorkerFS for 2GB+ support
       await ffmpeg.mount('WORKERFS', { files: [file] }, '/mnt');
       
+      // We use the first file in the mount array. WorkerFS names it according to the File object.
       await ffmpeg.exec([
         '-i', `/mnt/${file.name}`, 
         '-vn', '-ab', '32k', '-ar', '16000', '-f', 'mp3', 
@@ -133,7 +142,8 @@ function App() {
         }
       }
     } catch (err) {
-      setError(err.message);
+      console.error('Studio Error:', err);
+      setError(`Studio Analysis Error: ${err.message}`);
     } finally {
       setIsUploading(false);
       setIsExtracting(false);
@@ -175,8 +185,9 @@ function App() {
       const ffmpeg = ffmpegRef.current;
       const duration = end - start;
       
-      // Ensure file is mounted if not already (or just remount)
-      try { await ffmpeg.mount('WORKERFS', { files: [file] }, '/mnt'); } catch(e) {}
+      // Clean up and remount to ensure we have the latest file session
+      try { await ffmpeg.unmount('/mnt'); } catch(e) {}
+      await ffmpeg.mount('WORKERFS', { files: [file] }, '/mnt');
 
       await ffmpeg.exec([
         '-ss', start.toString(),
