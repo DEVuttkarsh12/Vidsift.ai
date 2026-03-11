@@ -95,19 +95,12 @@ function App() {
     try {
       const ffmpeg = ffmpegRef.current;
       
-      // Clean up any previous mount session to prevent collisions
-      try {
-        await ffmpeg.unmount('/mnt');
-      } catch (e) {
-        // Safe to ignore if /mnt wasn't mounted
-      }
-
-      // Mount the file using WorkerFS for 2GB+ support
-      await ffmpeg.mount('WORKERFS', { files: [file] }, '/mnt');
+      // Stable approach: writeFile (standard for v0.12.x)
+      // We use fetchFile which handles the blob conversion elegantly
+      await ffmpeg.writeFile('input.mp4', await fetchFile(file));
       
-      // We use the first file in the mount array. WorkerFS names it according to the File object.
       await ffmpeg.exec([
-        '-i', `/mnt/${file.name}`, 
+        '-i', 'input.mp4', 
         '-vn', '-ab', '32k', '-ar', '16000', '-f', 'mp3', 
         'audio.mp3'
       ]);
@@ -142,8 +135,9 @@ function App() {
         }
       }
     } catch (err) {
-      console.error('Studio Error:', err);
-      setError(`Studio Analysis Error: ${err.message}`);
+      console.error('Studio Analysis Failure:', err);
+      const errorMessage = typeof err === 'string' ? err : (err?.message || 'Unknown Cinematic Error');
+      setError(`Studio Analysis Error: ${errorMessage}`);
     } finally {
       setIsUploading(false);
       setIsExtracting(false);
@@ -185,13 +179,12 @@ function App() {
       const ffmpeg = ffmpegRef.current;
       const duration = end - start;
       
-      // Clean up and remount to ensure we have the latest file session
-      try { await ffmpeg.unmount('/mnt'); } catch(e) {}
-      await ffmpeg.mount('WORKERFS', { files: [file] }, '/mnt');
+      // Stable approach for clipping
+      await ffmpeg.writeFile('input.mp4', await fetchFile(file));
 
       await ffmpeg.exec([
         '-ss', start.toString(),
-        '-i', `/mnt/${file.name}`,
+        '-i', 'input.mp4',
         '-t', duration.toString(),
         '-c', 'copy',
         'output.mp4'
