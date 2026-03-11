@@ -139,11 +139,12 @@ function App() {
       if (!cloudRes.ok) throw new Error('Cloud Storage Handover failed.');
       const cloudData = await cloudRes.json();
       const audioUrl = cloudData.secure_url;
+      const duration = videoRef.current ? videoRef.current.duration : 0;
 
       const response = await fetch(`${API_URL}/api/analyze-audio-url`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ audioUrl })
+        body: JSON.stringify({ audioUrl, duration })
       });
 
       if (!response.ok) throw new Error('Studio analysis request failed.');
