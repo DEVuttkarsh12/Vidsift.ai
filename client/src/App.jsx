@@ -118,15 +118,35 @@ function App() {
       }
 
       setIsExtracting(false);
-      const formData = new FormData();
-      formData.append('audio', audioBlob, 'audio.mp3');
 
-      const response = await fetch(`${API_URL}/api/analyze-audio`, {
+      // Cloud-Native Handover: Upload audio to Cloudinary first
+      // This bypasses server connection timeouts for large files
+      const sigRes = await fetch(`${API_URL}/api/generate-signature`);
+      const sigData = await sigRes.json();
+
+      const cloudFormData = new FormData();
+      cloudFormData.append('file', audioBlob);
+      cloudFormData.append('api_key', sigData.api_key);
+      cloudFormData.append('timestamp', sigData.timestamp);
+      cloudFormData.append('signature', sigData.signature);
+      cloudFormData.append('folder', sigData.folder);
+
+      const cloudRes = await fetch(
+        `https://api.cloudinary.com/v1_1/${sigData.cloud_name}/auto/upload`,
+        { method: 'POST', body: cloudFormData }
+      );
+
+      if (!cloudRes.ok) throw new Error('Cloud Storage Handover failed.');
+      const cloudData = await cloudRes.json();
+      const audioUrl = cloudData.secure_url;
+
+      const response = await fetch(`${API_URL}/api/analyze-audio-url`, {
         method: 'POST',
-        body: formData
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ audioUrl })
       });
 
-      if (!response.ok) throw new Error('Studio analysis failed.');
+      if (!response.ok) throw new Error('Studio analysis request failed.');
       const { jobId } = await response.json();
 
       // Poll for job completion

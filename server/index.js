@@ -121,37 +121,43 @@ app.post('/api/analyze-cloudinary', async (req, res) => {
     res.json({ jobId });
 });
 
-// 3. Analyze Audio File (Client-Side Extraction Flow)
+// 3. Analyze Audio File (Multer Fallback)
 app.post('/api/analyze-audio', upload.single('audio'), async (req, res) => {
     if (!req.file) return res.status(400).json({ message: 'No audio file provided' });
-
     const jobId = Date.now().toString(36) + Math.random().toString(36).substring(2);
     const localAudioPath = req.file.path;
-
     jobs[jobId] = { status: 'processing', progress: 0 };
-
-    // Start background transcription
     (async () => {
         try {
-            console.log(`[Job ${jobId}] Transcribing extracted audio...`);
             const transcript = await transcribeAudio(localAudioPath);
-
-            // Cleanup
             if (fs.existsSync(localAudioPath)) fs.unlinkSync(localAudioPath);
-
-            jobs[jobId] = {
-                status: 'completed',
-                transcript: transcript,
-                completedAt: new Date()
-            };
-            console.log(`[Job ${jobId}] Finished.`);
+            jobs[jobId] = { status: 'completed', transcript: transcript, completedAt: new Date() };
         } catch (error) {
             console.error(`[Job ${jobId}] Error:`, error);
             if (fs.existsSync(localAudioPath)) fs.unlinkSync(localAudioPath);
-            jobs[jobId] = {
-                status: 'error',
-                message: error.message
-            };
+            jobs[jobId] = { status: 'error', message: error.message };
+        }
+    })();
+    res.json({ jobId });
+});
+
+// 3.5 Analyze Audio URL (Cloud-Native Handover - ELITE)
+app.post('/api/analyze-audio-url', async (req, res) => {
+    const { audioUrl } = req.body;
+    if (!audioUrl) return res.status(400).json({ message: 'No audio URL provided' });
+
+    const jobId = Date.now().toString(36) + Math.random().toString(36).substring(2);
+    jobs[jobId] = { status: 'processing', progress: 0, audioUrl };
+
+    (async () => {
+        try {
+            console.log(`[Job ${jobId}] Starting Cloud-Native Analysis:`, audioUrl);
+            const transcript = await transcribeAudio(audioUrl);
+            jobs[jobId] = { status: 'completed', transcript: transcript, completedAt: new Date() };
+            console.log(`[Job ${jobId}] Analysis Successful.`);
+        } catch (error) {
+            console.error(`[Job ${jobId}] Analysis Failure:`, error);
+            jobs[jobId] = { status: 'error', message: error.message };
         }
     })();
 
