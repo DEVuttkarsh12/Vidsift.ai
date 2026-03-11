@@ -1,9 +1,9 @@
 [phases.setup]
 nixpkgsArchive = "ba63836170d10332d43e5e412a83236e19198305"
-aptPkgs = ["ffmpeg"]
+nixPkgs = ["ffmpeg", "nodejs_18"]
 
 [phases.build]
 cmds = ["npm ci"]
 
 [start]
-cmd = "npm start"
+cmd = "node index.js"

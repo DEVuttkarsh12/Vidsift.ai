@@ -4,11 +4,8 @@ const axios = require('axios');
 const Groq = require('groq-sdk');
 const ffmpeg = require('fluent-ffmpeg');
 
-const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
-const ffprobeInstaller = require('@ffprobe-installer/ffprobe');
-
-ffmpeg.setFfmpegPath(ffmpegInstaller.path);
-ffmpeg.setFfprobePath(ffprobeInstaller.path);
+ffmpeg.setFfmpegPath('ffmpeg');
+ffmpeg.setFfprobePath('ffprobe');
 
 // Initialize Groq if key exists
 const groq = process.env.GROQ_API_KEY ? new Groq({ apiKey: process.env.GROQ_API_KEY }) : null;
@@ -51,15 +48,22 @@ async function transcribeAudio(inputSource, clientDuration = null) {
             });
         }
 
-        // Strict Duration Priority: Prefer client metadata to avoid server-side probe failures
+        // Total Stability: Rely on client metadata to avoid server-side binary dependency
         let duration = 0;
-        if (clientDuration && !isNaN(parseFloat(clientDuration)) && parseFloat(clientDuration) > 0) {
-            duration = parseFloat(clientDuration);
-            console.log(`[Studio] Using Client Metadata Duration: ${duration.toFixed(2)}s`);
+        const potentialDuration = parseFloat(clientDuration);
+        
+        if (!isNaN(potentialDuration) && potentialDuration > 0) {
+            duration = potentialDuration;
+            console.log(`[Studio] Analysis locked to Client Metadata: ${duration.toFixed(2)}s`);
         } else {
-            console.log('[Studio] Server-side probe required (No valid client metadata)...');
-            duration = await getAudioDuration(audioPath);
-            console.log(`[Studio] Probed Duration: ${duration.toFixed(2)}s`);
+            console.log('[Studio] Server-side probe required (Metadata Handover missing)...');
+            try {
+                duration = await getAudioDuration(audioPath);
+                console.log(`[Studio] System Probed Duration: ${duration.toFixed(2)}s`);
+            } catch (probeError) {
+                console.error('[Studio] FFprobe Fatal Error:', probeError.message);
+                throw new Error("Studio Setup Failure: Analysis binaries (FFmpeg) are currently being updated by the server. Please try again in 60 seconds.");
+            }
         }
 
         if (duration <= CHUNK_DURATION) {
