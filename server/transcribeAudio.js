@@ -48,8 +48,16 @@ async function transcribeAudio(inputSource, clientDuration = null) {
             });
         }
 
-        const duration = clientDuration || (await getAudioDuration(audioPath));
-        console.log(`[Studio] Professional Asset Duration: ${duration.toFixed(2)} seconds`);
+        // Strict Duration Priority: Prefer client metadata to avoid server-side probe failures
+        let duration = 0;
+        if (clientDuration && !isNaN(parseFloat(clientDuration)) && parseFloat(clientDuration) > 0) {
+            duration = parseFloat(clientDuration);
+            console.log(`[Studio] Using Client Metadata Duration: ${duration.toFixed(2)}s`);
+        } else {
+            console.log('[Studio] Server-side probe required (No valid client metadata)...');
+            duration = await getAudioDuration(audioPath);
+            console.log(`[Studio] Probed Duration: ${duration.toFixed(2)}s`);
+        }
 
         if (duration <= CHUNK_DURATION) {
             return await transcribeSingleFile(audioPath);
