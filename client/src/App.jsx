@@ -94,8 +94,15 @@ function App() {
 
     try {
       const ffmpeg = ffmpegRef.current;
-      await ffmpeg.writeFile('input.mp4', await fetchFile(file));
-      await ffmpeg.exec(['-i', 'input.mp4', '-vn', '-ab', '32k', '-ar', '16000', '-f', 'mp3', 'audio.mp3']);
+      // Mount the file using WorkerFS for 2GB+ support
+      await ffmpeg.mount('WORKERFS', { files: [file] }, '/mnt');
+      
+      await ffmpeg.exec([
+        '-i', `/mnt/${file.name}`, 
+        '-vn', '-ab', '32k', '-ar', '16000', '-f', 'mp3', 
+        'audio.mp3'
+      ]);
+      
       const audioData = await ffmpeg.readFile('audio.mp3');
       const audioBlob = new Blob([audioData.buffer], { type: 'audio/mp3' });
 
@@ -167,9 +174,13 @@ function App() {
     try {
       const ffmpeg = ffmpegRef.current;
       const duration = end - start;
+      
+      // Ensure file is mounted if not already (or just remount)
+      try { await ffmpeg.mount('WORKERFS', { files: [file] }, '/mnt'); } catch(e) {}
+
       await ffmpeg.exec([
         '-ss', start.toString(),
-        '-i', 'input.mp4',
+        '-i', `/mnt/${file.name}`,
         '-t', duration.toString(),
         '-c', 'copy',
         'output.mp4'
