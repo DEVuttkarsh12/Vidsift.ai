@@ -139,6 +139,7 @@ function App() {
 
       if (!cloudRes.ok) throw new Error('Cloud Storage Handover failed.');
       const cloudData = await cloudRes.json();
+      const audioUrl = cloudData.secure_url;
       // Ensure duration is captured precisely (Prefer state, fallback to ref)
       const duration = videoDuration || (videoRef.current ? videoRef.current.duration : 0);
       
@@ -312,7 +313,12 @@ function App() {
             <div className="elite-panel monitor-panel">
               <span className="segment-meta">Master Monitor</span>
               <div className="monitor-frame">
-                <video ref={videoRef} src={videoUrl} controls />
+                <video 
+                  ref={videoRef} 
+                  src={videoUrl} 
+                  onLoadedMetadata={(e) => setVideoDuration(e.target.duration)}
+                  controls 
+                />
               </div>
               <div style={{ marginTop: '2rem' }}>
                 <h3 style={{ fontFamily: 'Fraunces', fontSize: '1.5rem' }}>Active Scene</h3>
