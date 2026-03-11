@@ -101,12 +101,21 @@ function App() {
       
       await ffmpeg.exec([
         '-i', 'input.mp4', 
-        '-vn', '-ab', '32k', '-ar', '16000', '-f', 'mp3', 
+        '-vn', 
+        '-ac', '1', 
+        '-ar', '16000', 
+        '-b:a', '12k', 
+        '-f', 'mp3', 
         'audio.mp3'
       ]);
       
       const audioData = await ffmpeg.readFile('audio.mp3');
       const audioBlob = new Blob([audioData.buffer], { type: 'audio/mp3' });
+      console.log(`[Studio] Extracted Audio Size: ${(audioBlob.size / 1024 / 1024).toFixed(2)}MB`);
+
+      if (audioBlob.size > 24 * 1024 * 1024) {
+        throw new Error('Project audio is too large for cloud analysis (Limit: 25MB). Try a shorter video.');
+      }
 
       setIsExtracting(false);
       const formData = new FormData();
