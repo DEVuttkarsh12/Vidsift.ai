@@ -394,6 +394,42 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.upload-icon-elite {
+  color: var(--accent);
+  margin-bottom: 2.5rem;
+}
+
+.upload-title-elite {
+  font-family: 'Outfit', sans-serif;
+  font-size: 3.5rem;
+  font-weight: 200;
+  letter-spacing: -0.05em;
+  line-height: 1.1;
+  margin-bottom: 1.5rem;
+  background: linear-gradient(to bottom, #fff, rgba(255, 255, 255, 0.7));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.upload-subtitle-elite {
+  color: var(--text-muted);
+  font-family: 'Inter', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 300;
+  margin-bottom: 4rem;
+  opacity: 0.8;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.upload-actions-elite {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+}
+
 /* Action Buttons - Premium Matte */
 .btn-primary-elite {
   background: var(--text-main);

@@ -218,15 +218,15 @@ function App() {
         {!transcript && !isUploading && (
           <div className="upload-modal reveal delay-1">
             <div className="elite-panel upload-card-elite">
-              <Upload size={48} style={{ color: 'var(--accent)', marginBottom: '2rem' }} />
-              <h2 style={{ fontFamily: 'Fraunces', fontSize: '2.5rem', marginBottom: '1rem' }}>
+              <Upload size={48} className="upload-icon-elite" />
+              <h2 className="upload-title-elite">
                 {file ? file.name : 'Start New Project'}
               </h2>
-              <p style={{ color: 'var(--text-muted)', marginBottom: '3rem' }}>
+              <p className="upload-subtitle-elite">
                 Import high-fidelity video files for deep AI analysis.
               </p>
               <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="video/*" hidden />
-              <div style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center' }}>
+              <div className="upload-actions-elite">
                 <button className="btn-primary-elite" onClick={() => fileInputRef.current.click()}>
                   {file ? 'Change Source' : 'Select Video'}
                 </button>
