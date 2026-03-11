@@ -143,7 +143,7 @@ app.post('/api/analyze-audio', upload.single('audio'), async (req, res) => {
 
 // 3.5 Analyze Audio URL (Cloud-Native Handover - ELITE)
 app.post('/api/analyze-audio-url', async (req, res) => {
-    const { audioUrl } = req.body;
+    const { audioUrl, duration } = req.body;
     if (!audioUrl) return res.status(400).json({ message: 'No audio URL provided' });
 
     const jobId = Date.now().toString(36) + Math.random().toString(36).substring(2);
@@ -151,8 +151,8 @@ app.post('/api/analyze-audio-url', async (req, res) => {
 
     (async () => {
         try {
-            console.log(`[Job ${jobId}] Starting Cloud-Native Analysis:`, audioUrl);
-            const transcript = await transcribeAudio(audioUrl);
+            console.log(`[Job ${jobId}] Starting Cloud-Native Analysis:`, audioUrl, 'Duration:', duration);
+            const transcript = await transcribeAudio(audioUrl, duration);
             jobs[jobId] = { status: 'completed', transcript: transcript, completedAt: new Date() };
             console.log(`[Job ${jobId}] Analysis Successful.`);
         } catch (error) {

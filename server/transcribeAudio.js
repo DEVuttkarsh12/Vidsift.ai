@@ -5,8 +5,8 @@ const ffmpeg = require('fluent-ffmpeg');
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 const ffprobePath = require('@ffprobe-installer/ffprobe').path;
 
-ffmpeg.setFfmpegPath(ffmpegPath);
-ffmpeg.setFfprobePath(ffprobePath);
+ffmpeg.setFfmpegPath('ffmpeg');
+ffmpeg.setFfprobePath('ffprobe');
 
 // Initialize Groq if key exists
 const groq = process.env.GROQ_API_KEY ? new Groq({ apiKey: process.env.GROQ_API_KEY }) : null;
@@ -14,16 +14,42 @@ const groq = process.env.GROQ_API_KEY ? new Groq({ apiKey: process.env.GROQ_API_
 // Segment length (10 minutes = 600s)
 const CHUNK_DURATION = 600; 
 
-async function transcribeAudio(audioPath) {
+async function transcribeAudio(inputSource, clientDuration = null) {
     if (!groq) {
         if (process.env.RAILWAY_STATIC_URL || process.env.NODE_ENV === 'production') {
             throw new Error("GROQ_API_KEY is missing. Local transcription is disabled in production.");
         }
-        return fallbackToLocal(audioPath);
+        return fallbackToLocal(inputSource);
     }
 
+    let audioPath = inputSource;
+    let isTempFile = false;
+
     try {
-        const duration = await getAudioDuration(audioPath);
+        // If input is a URL, download it locally first for reliable ffprobe/chunking
+        if (inputSource.startsWith('http')) {
+            console.log('[Studio] Downloading Cloud Asset for analysis...');
+            const tempDir = path.join(__dirname, 'uploads');
+            if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
+            
+            audioPath = path.join(tempDir, `transcribe_${Date.now()}.mp3`);
+            isTempFile = true;
+            
+            const response = await axios({
+                url: inputSource,
+                method: 'GET',
+                responseType: 'stream'
+            });
+            
+            await new Promise((resolve, reject) => {
+                const writer = fs.createWriteStream(audioPath);
+                response.data.pipe(writer);
+                writer.on('finish', resolve);
+                writer.on('error', reject);
+            });
+        }
+
+        const duration = clientDuration || (await getAudioDuration(audioPath));
         console.log(`[Studio] Professional Asset Duration: ${duration.toFixed(2)} seconds`);
 
         if (duration <= CHUNK_DURATION) {
