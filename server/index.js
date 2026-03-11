@@ -127,9 +127,10 @@ app.post('/api/analyze-audio', upload.single('audio'), async (req, res) => {
     const jobId = Date.now().toString(36) + Math.random().toString(36).substring(2);
     const localAudioPath = req.file.path;
     jobs[jobId] = { status: 'processing', progress: 0 };
+    const duration = req.headers['x-video-duration'];
     (async () => {
         try {
-            const transcript = await transcribeAudio(localAudioPath);
+            const transcript = await transcribeAudio(localAudioPath, duration);
             if (fs.existsSync(localAudioPath)) fs.unlinkSync(localAudioPath);
             jobs[jobId] = { status: 'completed', transcript: transcript, completedAt: new Date() };
         } catch (error) {
