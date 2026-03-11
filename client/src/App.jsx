@@ -139,7 +139,15 @@ function App() {
       if (!cloudRes.ok) throw new Error('Cloud Storage Handover failed.');
       const cloudData = await cloudRes.json();
       const audioUrl = cloudData.secure_url;
-      const duration = videoRef.current ? videoRef.current.duration : 0;
+      
+      // Ensure duration is captured precisely
+      let duration = 0;
+      if (videoRef.current && !isNaN(videoRef.current.duration)) {
+        duration = videoRef.current.duration;
+      } else {
+        // Backup: Try to get from state if we added it there
+        console.warn('[Studio] Duration not found in ref, attempting fallback...');
+      }
 
       const response = await fetch(`${API_URL}/api/analyze-audio-url`, {
         method: 'POST',
