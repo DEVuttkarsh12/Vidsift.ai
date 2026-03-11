@@ -1,37 +1,109 @@
 const fs = require('fs');
+const path = require('path');
 const Groq = require('groq-sdk');
+const ffmpeg = require('fluent-ffmpeg');
+const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
+const ffprobePath = require('@ffprobe-installer/ffprobe').path;
+
+ffmpeg.setFfmpegPath(ffmpegPath);
+ffmpeg.setFfprobePath(ffprobePath);
 
 // Initialize Groq if key exists
 const groq = process.env.GROQ_API_KEY ? new Groq({ apiKey: process.env.GROQ_API_KEY }) : null;
 
-async function transcribeAudio(audioPath) {
-    // Check if we should use Groq (Fast & Light for Cloud)
-    if (groq) {
-        console.log('Using Cloud Transcription (Groq)...');
-        try {
-            const transcription = await groq.audio.transcriptions.create({
-                file: fs.createReadStream(audioPath),
-                model: "whisper-large-v3",
-                response_format: "verbose_json",
-            });
+// Segment length (10 minutes = 600s)
+const CHUNK_DURATION = 600; 
 
-            // Map Groq response to our internal format
-            return transcription.segments.map(segment => ({
-                time: segment.start,
-                time_end: segment.end,
-                text: segment.text.trim()
-            }));
-        } catch (error) {
-            console.error('Groq API Error:', error.message);
-            throw new Error(`Cloud Transcription Failed: ${error.message}. Please check your Groq API quota and limits.`);
-        }
-    } else {
-        // Enforce cloud-only for production to prevent OOM
+async function transcribeAudio(audioPath) {
+    if (!groq) {
         if (process.env.RAILWAY_STATIC_URL || process.env.NODE_ENV === 'production') {
-            throw new Error("GROQ_API_KEY is missing. Local transcription is disabled in production to prevent crashes. Please add GROQ_API_KEY to your Railway variables.");
+            throw new Error("GROQ_API_KEY is missing. Local transcription is disabled in production.");
         }
         return fallbackToLocal(audioPath);
     }
+
+    try {
+        const duration = await getAudioDuration(audioPath);
+        console.log(`[Studio] Professional Asset Duration: ${duration.toFixed(2)} seconds`);
+
+        if (duration <= CHUNK_DURATION) {
+            return await transcribeSingleFile(audioPath);
+        }
+
+        // Sequential Chunking for Large Assets (ASPH Management)
+        console.log(`[Studio] Large Asset Detected. Sequencing into ${Math.ceil(duration / CHUNK_DURATION)} segments...`);
+        const allSegments = [];
+        const tempDir = path.dirname(audioPath);
+
+        for (let start = 0; start < duration; start += CHUNK_DURATION) {
+            const chunkPath = path.join(tempDir, `chunk_${Math.floor(start)}.mp3`);
+            
+            // Extract the chunk
+            await new Promise((resolve, reject) => {
+                ffmpeg(audioPath)
+                    .setStartTime(start)
+                    .setDuration(Math.min(CHUNK_DURATION, duration - start))
+                    .output(chunkPath)
+                    .on('end', resolve)
+                    .on('error', reject)
+                    .run();
+            });
+
+            console.log(`[Studio] Transcribing segment: ${Math.floor(start / 60)}m - ${Math.floor(Math.min(start + CHUNK_DURATION, duration) / 60)}m`);
+            
+            try {
+                const transcription = await transcribeSingleFile(chunkPath);
+                
+                // Adjust timestamps for the combined transcript
+                const offsetSegments = transcription.map(seg => ({
+                    ...seg,
+                    time: seg.time + start,
+                    time_end: (seg.time_end || seg.time) + start
+                }));
+                allSegments.push(...offsetSegments);
+            } catch (chunkError) {
+                console.error(`[Studio] Segment Failure at ${start}s:`, chunkError.message);
+                if (chunkError.message.includes('rate_limit_exceeded')) {
+                  throw new Error(`Studio Quota Exceeded (ASPH): ${chunkError.message}. We transcribed ${Math.floor(start / 60)} minutes before hitting the limit.`);
+                }
+                throw chunkError;
+            } finally {
+                if (fs.existsSync(chunkPath)) fs.unlinkSync(chunkPath);
+            }
+
+            // High-precision delay to respect burst limits (2s)
+            await new Promise(r => setTimeout(r, 2000));
+        }
+
+        return allSegments;
+
+    } catch (error) {
+        console.error('Transcription Sequencing Error:', error.message);
+        throw new Error(`Studio Analysis Failed: ${error.message}`);
+    }
+}
+
+async function transcribeSingleFile(path) {
+    const transcription = await groq.audio.transcriptions.create({
+        file: fs.createReadStream(path),
+        model: "whisper-large-v3",
+        response_format: "verbose_json",
+    });
+
+    return transcription.segments.map(segment => ({
+        time: segment.start,
+        time_end: segment.end,
+        text: segment.text.trim()
+    }));
+}
+
+function getAudioDuration(path) {
+    return new Promise((resolve, reject) => {
+        ffmpeg.ffprobe(path, (err, metadata) => {
+            if (err) return reject(err);
+            resolve(metadata.format.duration);
+        });
+    });
 }
 
 async function fallbackToLocal(audioPath) {
