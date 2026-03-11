@@ -1,9 +1,8 @@
 const fs = require('fs');
 const path = require('path');
+const axios = require('axios');
 const Groq = require('groq-sdk');
 const ffmpeg = require('fluent-ffmpeg');
-const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
-const ffprobePath = require('@ffprobe-installer/ffprobe').path;
 
 ffmpeg.setFfmpegPath('ffmpeg');
 ffmpeg.setFfprobePath('ffprobe');
