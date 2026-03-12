@@ -102,7 +102,12 @@ function App() {
       // WorkerFS Mounting: Memory-efficient way to handle 2GB+ files
       // Instead of reading the whole blob into RAM, we mount it as a virtual drive
       const folder = '/work';
-      await ffmpeg.createDir(folder);
+      try {
+        await ffmpeg.createDir(folder);
+      } catch (e) {
+        // Directory may already exist from previous session
+      }
+      
       await ffmpeg.mount('WORKERFS', {
         files: [file],
       }, folder);
@@ -130,7 +135,11 @@ function App() {
       const audioBlob = new Blob([audioData.buffer], { type: 'audio/mp3' });
       
       // Cleanup mount
-      await ffmpeg.unmount(folder);
+      try {
+        await ffmpeg.unmount(folder);
+      } catch (e) {
+        console.warn('[Studio] Unmount failed (may not be critical):', e);
+      }
       console.log(`[Studio] Extracted Audio Size: ${(audioBlob.size / 1024 / 1024).toFixed(2)}MB`);
 
       if (audioBlob.size > 24 * 1024 * 1024) {
@@ -256,18 +265,30 @@ function App() {
     try {
       const ffmpeg = ffmpegRef.current;
       const duration = end - start;
+      const folder = '/work_clip';
       
-      // Stable approach for clipping
-      await ffmpeg.writeFile('input.mp4', await fetchFile(file));
+      try { 
+        await ffmpeg.createDir(folder); 
+      } catch (e) {}
+
+      // WorkerFS for clips: Memory-efficient for massive source videos
+      await ffmpeg.mount('WORKERFS', {
+        files: [file],
+      }, folder);
 
       await ffmpeg.exec([
         '-ss', start.toString(),
-        '-i', 'input.mp4',
+        '-i', `${folder}/${file.name}`,
         '-t', duration.toString(),
         '-c', 'copy',
         'output.mp4'
       ]);
+
       const data = await ffmpeg.readFile('output.mp4');
+      
+      // Early cleanup
+      await ffmpeg.unmount(folder);
+
       const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
       const a = document.createElement('a');
       a.href = url;
