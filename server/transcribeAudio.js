@@ -16,7 +16,7 @@ const groq = process.env.GROQ_API_KEY ? new Groq({ apiKey: process.env.GROQ_API_
 // Segment length (10 minutes = 600s)
 const CHUNK_DURATION = 600; 
 
-async function transcribeAudio(inputSource, clientDuration = null) {
+async function transcribeAudio(inputSource, clientDuration = null, onProgress = null) {
     if (!groq) {
         if (process.env.RAILWAY_STATIC_URL || process.env.NODE_ENV === 'production') {
             throw new Error("GROQ_API_KEY is missing. Local transcription is disabled in production.");
@@ -73,14 +73,19 @@ async function transcribeAudio(inputSource, clientDuration = null) {
             return await transcribeSingleFile(audioPath);
         }
 
-        // Sequential Chunking for Large Assets (ASPH Management)
-        console.log(`[Studio] Large Asset Detected. Sequencing into ${Math.ceil(duration / CHUNK_DURATION)} segments...`);
+        const totalSegments = Math.ceil(duration / CHUNK_DURATION);
+        console.log(`[Studio] Large Asset Detected. Sequencing into ${totalSegments} segments...`);
         const allSegments = [];
         const tempDir = path.dirname(audioPath);
 
         for (let start = 0; start < duration; start += CHUNK_DURATION) {
+            const segmentIndex = Math.floor(start / CHUNK_DURATION) + 1;
             const chunkPath = path.join(tempDir, `chunk_${Math.floor(start)}.mp3`);
             
+            if (onProgress) {
+              onProgress(`Sequencing Studio Asset (Segment ${segmentIndex}/${totalSegments})...`);
+            }
+
             // Extract the chunk
             await new Promise((resolve, reject) => {
                 ffmpeg(audioPath)
@@ -92,10 +97,29 @@ async function transcribeAudio(inputSource, clientDuration = null) {
                     .run();
             });
 
-            console.log(`[Studio] Transcribing segment: ${Math.floor(start / 60)}m - ${Math.floor(Math.min(start + CHUNK_DURATION, duration) / 60)}m`);
+            console.log(`[Studio] Transcribing segment ${segmentIndex}/${totalSegments}: ${Math.floor(start / 60)}m - ${Math.floor(Math.min(start + CHUNK_DURATION, duration) / 60)}m`);
             
+            if (onProgress) {
+              onProgress(`Analyzing Intelligence (Segment ${segmentIndex}/${totalSegments})...`);
+            }
+
             try {
-                const transcription = await transcribeSingleFile(chunkPath);
+                // Segment-Level Retries: Resilience for professional assets
+                let transcription = null;
+                let attempts = 0;
+                const maxAttempts = 3;
+
+                while (!transcription && attempts < maxAttempts) {
+                  try {
+                    attempts++;
+                    transcription = await transcribeSingleFile(chunkPath);
+                  } catch (err) {
+                    console.warn(`[Studio] Attempt ${attempts} failed for segment ${segmentIndex}:`, err.message);
+                    if (attempts >= maxAttempts) throw err;
+                    // Exponential backoff
+                    await new Promise(r => setTimeout(r, 2000 * attempts));
+                  }
+                }
                 
                 // Adjust timestamps for the combined transcript
                 const offsetSegments = transcription.map(seg => ({
@@ -105,9 +129,9 @@ async function transcribeAudio(inputSource, clientDuration = null) {
                 }));
                 allSegments.push(...offsetSegments);
             } catch (chunkError) {
-                console.error(`[Studio] Segment Failure at ${start}s:`, chunkError.message);
+                console.error(`[Studio] Segment ${segmentIndex} Fatal Failure:`, chunkError.message);
                 if (chunkError.message.includes('rate_limit_exceeded')) {
-                  throw new Error(`Studio Quota Exceeded (ASPH): ${chunkError.message}. We transcribed ${Math.floor(start / 60)} minutes before hitting the limit.`);
+                  throw new Error(`Studio Quota Exceeded (ASPH): We transcribed ${Math.floor(start / 60)} minutes before hitting the limit.`);
                 }
                 throw chunkError;
             } finally {
@@ -115,7 +139,7 @@ async function transcribeAudio(inputSource, clientDuration = null) {
             }
 
             // High-precision delay to respect burst limits (2s)
-            await new Promise(r => setTimeout(r, 2000));
+            await new Promise(r => setTimeout(r, 1500));
         }
 
         return allSegments;

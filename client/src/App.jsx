@@ -32,6 +32,8 @@ function App() {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [serverHealth, setServerHealth] = useState('checking');
+  const [studioStatus, setStudioStatus] = useState('');
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const ffmpegRef = useRef(new FFmpeg());
   const [ffmpegLoaded, setFfmpegLoaded] = useState(false);
@@ -95,13 +97,26 @@ function App() {
 
     try {
       const ffmpeg = ffmpegRef.current;
+      setStudioStatus('Mounting Studio Assets...');
       
-      // Stable approach: writeFile (standard for v0.12.x)
-      // We use fetchFile which handles the blob conversion elegantly
-      await ffmpeg.writeFile('input.mp4', await fetchFile(file));
+      // WorkerFS Mounting: Memory-efficient way to handle 2GB+ files
+      // Instead of reading the whole blob into RAM, we mount it as a virtual drive
+      const folder = '/work';
+      await ffmpeg.createDir(folder);
+      await ffmpeg.mount('WORKERFS', {
+        files: [file],
+      }, folder);
+
+      setStudioStatus('Scrubbing Studio Audio...');
       
+      // Update extraction progress listener
+      const progressHandler = ({ progress }) => {
+        setExtractionProgress(Math.round(progress * 100));
+      };
+      ffmpeg.on('progress', progressHandler);
+
       await ffmpeg.exec([
-        '-i', 'input.mp4', 
+        '-i', `${folder}/${file.name}`, 
         '-vn', 
         '-ac', '1', 
         '-ar', '16000', 
@@ -110,8 +125,12 @@ function App() {
         'audio.mp3'
       ]);
       
+      setStudioStatus('Reading Extractions...');
       const audioData = await ffmpeg.readFile('audio.mp3');
       const audioBlob = new Blob([audioData.buffer], { type: 'audio/mp3' });
+      
+      // Cleanup mount
+      await ffmpeg.unmount(folder);
       console.log(`[Studio] Extracted Audio Size: ${(audioBlob.size / 1024 / 1024).toFixed(2)}MB`);
 
       if (audioBlob.size > 24 * 1024 * 1024) {
@@ -119,27 +138,46 @@ function App() {
       }
 
       setIsExtracting(false);
+      setStudioStatus('Generating Secure Handshake...');
 
       // Cloud-Native Handover: Upload audio to Cloudinary first
-      // This bypasses server connection timeouts for large files
       const sigRes = await fetch(`${API_URL}/api/generate-signature`);
       const sigData = await sigRes.json();
 
-      const cloudFormData = new FormData();
-      cloudFormData.append('file', audioBlob);
-      cloudFormData.append('api_key', sigData.api_key);
-      cloudFormData.append('timestamp', sigData.timestamp);
-      cloudFormData.append('signature', sigData.signature);
-      cloudFormData.append('folder', sigData.folder);
+      setStudioStatus('Buffering to Cloud (0%)');
+      
+      // Manual XHR for upload progress tracking
+      const audioUrl = await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `https://api.cloudinary.com/v1_1/${sigData.cloud_name}/auto/upload`);
+        
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            const percent = Math.round((e.loaded / e.total) * 100);
+            setUploadProgress(percent);
+            setStudioStatus(`Buffering to Cloud (${percent}%)`);
+          }
+        };
 
-      const cloudRes = await fetch(
-        `https://api.cloudinary.com/v1_1/${sigData.cloud_name}/auto/upload`,
-        { method: 'POST', body: cloudFormData }
-      );
+        xhr.onload = () => {
+          if (xhr.status === 200) {
+            const res = JSON.parse(xhr.responseText);
+            resolve(res.secure_url);
+          } else {
+            reject(new Error('Cloud buffering failed.'));
+          }
+        };
+        
+        xhr.onerror = () => reject(new Error('Cloud connection error.'));
 
-      if (!cloudRes.ok) throw new Error('Cloud Storage Handover failed.');
-      const cloudData = await cloudRes.json();
-      const audioUrl = cloudData.secure_url;
+        const cloudFormData = new FormData();
+        cloudFormData.append('file', audioBlob);
+        cloudFormData.append('api_key', sigData.api_key);
+        cloudFormData.append('timestamp', sigData.timestamp);
+        cloudFormData.append('signature', sigData.signature);
+        cloudFormData.append('folder', sigData.folder);
+        xhr.send(cloudFormData);
+      });
       // Ensure duration is captured precisely (Prefer state, fallback to ref)
       const duration = videoDuration || (videoRef.current ? videoRef.current.duration : 0);
       
@@ -147,6 +185,7 @@ function App() {
         console.warn('[Studio] Critical: No video duration detected.');
       }
 
+      setStudioStatus('Initializing Deep Analysis...');
       const response = await fetch(`${API_URL}/api/analyze-audio-url`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -166,6 +205,9 @@ function App() {
         if (job.status === 'completed') {
           setTranscript(job.transcript);
           completed = true;
+        } else if (job.status === 'processing') {
+          // Update status with granular backend feedback if available
+          setStudioStatus(job.message || 'Analyzing Intelligence...');
         } else if (job.status === 'error') {
           throw new Error(job.message || 'Analysis failed.');
         }
@@ -297,10 +339,21 @@ function App() {
             <div className="elite-panel upload-card-elite" style={{ border: 'none', background: 'transparent' }}>
               <Loader2 size={64} className="spin" style={{ color: 'var(--accent)', marginBottom: '2rem' }} />
               <h2 style={{ fontFamily: 'Fraunces', fontSize: '2rem' }}>
-                {isExtracting ? 'Stripping High-Fidelity Audio' : 'AI Intelligence Processing'}
+                {studioStatus}
               </h2>
-              <p style={{ color: 'var(--text-muted)', marginTop: '1rem' }}>
-                Processing your studio-grade assets...
+              {isExtracting && (
+                <div className="progress-container-elite">
+                  <div className="progress-bar-elite" style={{ width: `${extractionProgress}%` }}></div>
+                  <span className="progress-label-elite">{extractionProgress}%</span>
+                </div>
+              )}
+              {uploadProgress > 0 && !isExtracting && (
+                <div className="progress-container-elite">
+                  <div className="progress-bar-elite" style={{ width: `${uploadProgress}%` }}></div>
+                </div>
+              )}
+              <p style={{ color: 'var(--text-muted)', marginTop: '1.5rem', letterSpacing: '0.1em', fontSize: '0.8rem' }}>
+                {isExtracting ? 'SCRUBBING STUDIO MASTER' : 'PROCESSING GLOBAL ASSETS'}
               </p>
             </div>
           </div>

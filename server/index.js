@@ -130,7 +130,9 @@ app.post('/api/analyze-audio', upload.single('audio'), async (req, res) => {
     const duration = req.headers['x-video-duration'];
     (async () => {
         try {
-            const transcript = await transcribeAudio(localAudioPath, duration);
+            const transcript = await transcribeAudio(localAudioPath, duration, (msg) => {
+              jobs[jobId] = { ...jobs[jobId], message: msg };
+            });
             if (fs.existsSync(localAudioPath)) fs.unlinkSync(localAudioPath);
             jobs[jobId] = { status: 'completed', transcript: transcript, completedAt: new Date() };
         } catch (error) {
@@ -153,7 +155,9 @@ app.post('/api/analyze-audio-url', async (req, res) => {
     (async () => {
         try {
             console.log(`[Job ${jobId}] Starting Cloud-Native Analysis:`, audioUrl, 'Duration:', duration);
-            const transcript = await transcribeAudio(audioUrl, duration);
+            const transcript = await transcribeAudio(audioUrl, duration, (msg) => {
+              jobs[jobId] = { ...jobs[jobId], message: msg };
+            });
             jobs[jobId] = { status: 'completed', transcript: transcript, completedAt: new Date() };
             console.log(`[Job ${jobId}] Analysis Successful.`);
         } catch (error) {
