@@ -115,8 +115,16 @@ async function transcribeAudio(inputSource, clientDuration = null, onProgress = 
                     transcription = await transcribeSingleFile(chunkPath);
                   } catch (err) {
                     console.warn(`[Studio] Attempt ${attempts} failed for segment ${segmentIndex}:`, err.message);
+                    if (err.message.includes('rate_limit_exceeded')) {
+                      // Quota Hit: Return partial results instead of failing
+                      console.error(`[Studio] Quota hit at segment ${segmentIndex}. Delivering partial script.`);
+                      allSegments.push({
+                        time: start,
+                        text: "[Studio Engine: Quota limit hit. Analysis paused. Increase project speed with a Pro Key.]"
+                      });
+                      return allSegments;
+                    }
                     if (attempts >= maxAttempts) throw err;
-                    // Exponential backoff
                     await new Promise(r => setTimeout(r, 2000 * attempts));
                   }
                 }
@@ -130,16 +138,17 @@ async function transcribeAudio(inputSource, clientDuration = null, onProgress = 
                 allSegments.push(...offsetSegments);
             } catch (chunkError) {
                 console.error(`[Studio] Segment ${segmentIndex} Fatal Failure:`, chunkError.message);
-                if (chunkError.message.includes('rate_limit_exceeded')) {
-                  throw new Error(`Studio Quota Exceeded (ASPH): We transcribed ${Math.floor(start / 60)} minutes before hitting the limit.`);
-                }
                 throw chunkError;
             } finally {
                 if (fs.existsSync(chunkPath)) fs.unlinkSync(chunkPath);
             }
 
-            // High-precision delay to respect burst limits (2s)
-            await new Promise(r => setTimeout(r, 1500));
+            // High-precision DYNAMIC delay to respect ASPH
+            // As we go deeper into a long video, we slow down to avoid the "Wall"
+            const baseDelay = 2000;
+            const dynamicDelay = baseDelay + (Math.floor(start / CHUNK_DURATION) * 1000); 
+            console.log(`[Studio] Respecting Quota (ASPH). Resting for ${dynamicDelay/1000}s...`);
+            await new Promise(r => setTimeout(r, dynamicDelay));
         }
 
         return allSegments;
