@@ -28,10 +28,6 @@ async function transcribeAudio(inputSource, clientDuration = null, onProgress = 
     let isTempFile = false;
 
     try {
-    let audioPath = inputSource;
-    let isTempFile = false;
-
-    try {
         // If input is a URL, download it locally first for reliable ffprobe/chunking
         if (inputSource.startsWith('http')) {
             console.log('[Studio] Downloading Cloud Asset for analysis...');
