@@ -28,32 +28,12 @@ async function transcribeAudio(inputSource, clientDuration = null, onProgress = 
     let isTempFile = false;
 
     try {
-        // If input is a URL, download it locally first for reliable ffprobe/chunking
-        if (inputSource.startsWith('http')) {
-            console.log('[Studio] Downloading Cloud Asset for analysis...');
-            const tempDir = path.join(__dirname, 'uploads');
-            if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
-            
-            audioPath = path.join(tempDir, `transcribe_${Date.now()}.mp3`);
-            isTempFile = true;
-            
-            const response = await axios({
-                url: inputSource,
-                method: 'GET',
-                responseType: 'stream'
-            });
-            
-            await new Promise((resolve, reject) => {
-                const writer = fs.createWriteStream(audioPath);
-                response.data.pipe(writer);
-                writer.on('finish', resolve);
-                writer.on('error', reject);
-            });
-        }
-
-        // Total Stability: Rely on client metadata to avoid server-side binary dependency
-        let duration = 0;
-        const potentialDuration = parseFloat(clientDuration);
+    // Total Stability: Rely on client metadata to avoid server-side binary dependency
+    let duration = 0;
+    const potentialDuration = parseFloat(clientDuration);
+    
+    // Note: audioPath is either a local path or a Cloudinary URL
+    const isUrl = audioPath.startsWith('http');
         
         if (!isNaN(potentialDuration) && potentialDuration > 0) {
             duration = potentialDuration;
@@ -76,80 +56,98 @@ async function transcribeAudio(inputSource, clientDuration = null, onProgress = 
         const totalSegments = Math.ceil(duration / CHUNK_DURATION);
         console.log(`[Studio] Large Asset Detected. Sequencing into ${totalSegments} segments...`);
         const allSegments = [];
-        const tempDir = path.dirname(audioPath);
+        const tempDir = path.join(__dirname, 'uploads');
+        if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
 
-        for (let start = 0; start < duration; start += CHUNK_DURATION) {
-            const segmentIndex = Math.floor(start / CHUNK_DURATION) + 1;
-            const chunkPath = path.join(tempDir, `chunk_${Math.floor(start)}.mp3`);
+        // Hyper-Speed: Parallel Batch Processing
+        // We process segments in batches of 3 to avoid hitting burst limits while gaining speed.
+        const BATCH_SIZE = 3;
+        
+        for (let start = 0; start < duration; start += CHUNK_DURATION * BATCH_SIZE) {
+            const batchPromises = [];
             
-            if (onProgress) {
-              onProgress(`Sequencing Studio Asset (Segment ${segmentIndex}/${totalSegments})...`);
-            }
+            for (let i = 0; i < BATCH_SIZE; i++) {
+                const segmentStart = start + (i * CHUNK_DURATION);
+                if (segmentStart >= duration) break;
 
-            // Extract the chunk
-            await new Promise((resolve, reject) => {
-                ffmpeg(audioPath)
-                    .setStartTime(start)
-                    .setDuration(Math.min(CHUNK_DURATION, duration - start))
-                    .output(chunkPath)
-                    .on('end', resolve)
-                    .on('error', reject)
-                    .run();
-            });
+                const segmentIndex = Math.floor(segmentStart / CHUNK_DURATION) + 1;
+                const chunkPath = path.join(tempDir, `chunk_${jobId || Date.now()}_${segmentIndex}.mp3`);
+                
+                const processSegment = async () => {
+                   try {
+                        if (onProgress) {
+                          onProgress(`Streaming Studio Segment ${segmentIndex}/${totalSegments}...`);
+                        }
 
-            console.log(`[Studio] Transcribing segment ${segmentIndex}/${totalSegments}: ${Math.floor(start / 60)}m - ${Math.floor(Math.min(start + CHUNK_DURATION, duration) / 60)}m`);
-            
-            if (onProgress) {
-              onProgress(`Analyzing Intelligence (Segment ${segmentIndex}/${totalSegments})...`);
+                        // Extract chunk directly from URL or file
+                        await new Promise((resolve, reject) => {
+                            ffmpeg(audioPath)
+                                .setStartTime(segmentStart)
+                                .setDuration(Math.min(CHUNK_DURATION, duration - segmentStart))
+                                .output(chunkPath)
+                                .on('end', resolve)
+                                .on('error', reject)
+                                .run();
+                        });
+
+                        console.log(`[Studio] Transcribing segment ${segmentIndex}/${totalSegments}...`);
+                        
+                        // Segment-Level Retries: Resilience for professional assets
+                        let transcription = null;
+                        let attempts = 0;
+                        const maxAttempts = 3;
+
+                        while (!transcription && attempts < maxAttempts) {
+                          try {
+                            attempts++;
+                            transcription = await transcribeSingleFile(chunkPath);
+                          } catch (err) {
+                            console.warn(`[Studio] Attempt ${attempts} failed for segment ${segmentIndex}:`, err.message);
+                            if (err.message.includes('rate_limit_exceeded')) {
+                              throw err; // Catch in outer loop for graceful partial return
+                            }
+                            if (attempts >= maxAttempts) throw err;
+                            await new Promise(r => setTimeout(r, 2000 * attempts));
+                          }
+                        }
+
+                        return transcription.map(seg => ({
+                            ...seg,
+                            time: seg.time + segmentStart,
+                            time_end: (seg.time_end || seg.time) + segmentStart
+                        }));
+
+                   } finally {
+                        if (fs.existsSync(chunkPath)) fs.unlinkSync(chunkPath);
+                   }
+                };
+
+                batchPromises.push(processSegment());
             }
 
             try {
-                // Segment-Level Retries: Resilience for professional assets
-                let transcription = null;
-                let attempts = 0;
-                const maxAttempts = 3;
-
-                while (!transcription && attempts < maxAttempts) {
-                  try {
-                    attempts++;
-                    transcription = await transcribeSingleFile(chunkPath);
-                  } catch (err) {
-                    console.warn(`[Studio] Attempt ${attempts} failed for segment ${segmentIndex}:`, err.message);
-                    if (err.message.includes('rate_limit_exceeded')) {
-                      // Quota Hit: Return partial results instead of failing
-                      console.error(`[Studio] Quota hit at segment ${segmentIndex}. Delivering partial script.`);
-                      allSegments.push({
+                const batchResults = await Promise.all(batchPromises);
+                batchResults.forEach(res => allSegments.push(...res));
+            } catch (err) {
+                if (err.message.includes('rate_limit_exceeded')) {
+                    console.error(`[Studio] Quota hit during batch. Delivering partial script.`);
+                    allSegments.push({
                         time: start,
-                        text: "[Studio Engine: Quota limit hit. Analysis paused. Increase project speed with a Pro Key.]"
-                      });
-                      return allSegments;
-                    }
-                    if (attempts >= maxAttempts) throw err;
-                    await new Promise(r => setTimeout(r, 2000 * attempts));
-                  }
+                        text: "[Studio Engine: Quota limit hit. Hyper-Speed paused. Delivery partial analysis...]"
+                    });
+                    return allSegments.sort((a,b) => a.time - b.time);
                 }
-                
-                // Adjust timestamps for the combined transcript
-                const offsetSegments = transcription.map(seg => ({
-                    ...seg,
-                    time: seg.time + start,
-                    time_end: (seg.time_end || seg.time) + start
-                }));
-                allSegments.push(...offsetSegments);
-            } catch (chunkError) {
-                console.error(`[Studio] Segment ${segmentIndex} Fatal Failure:`, chunkError.message);
-                throw chunkError;
-            } finally {
-                if (fs.existsSync(chunkPath)) fs.unlinkSync(chunkPath);
+                throw err;
             }
 
-            // High-precision DYNAMIC delay to respect ASPH
-            // As we go deeper into a long video, we slow down to avoid the "Wall"
-            const baseDelay = 2000;
-            const dynamicDelay = baseDelay + (Math.floor(start / CHUNK_DURATION) * 1000); 
-            console.log(`[Studio] Respecting Quota (ASPH). Resting for ${dynamicDelay/1000}s...`);
+            // High-precision DYNAMIC delay to respect ASPH after each batch
+            const baseDelay = 3000;
+            const dynamicDelay = baseDelay + (Math.floor(start / CHUNK_DURATION) * 500); 
+            console.log(`[Studio] Batch complete. Resting for ${dynamicDelay/1000}s...`);
             await new Promise(r => setTimeout(r, dynamicDelay));
         }
+
+        return allSegments.sort((a,b) => a.time - b.time);
 
         return allSegments;
 
