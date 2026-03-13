@@ -70,7 +70,18 @@ async function transcribeAudio(inputSource, clientDuration = null, onProgress = 
         }
 
         if (duration <= CHUNK_DURATION) {
-            return await transcribeSingleFile(audioPath);
+            try {
+                return await transcribeSingleFile(audioPath);
+            } catch (err) {
+                if (err.message.includes('rate_limit_exceeded')) {
+                    console.error(`[Studio] Quota hit on short asset.`);
+                    return [{
+                        time: 0,
+                        text: "[Studio Engine: Quota limit hit. The large 2.9GB asset used up the hourly AI energy. Please try again in a few minutes or use a Pro Key.]"
+                    }];
+                }
+                throw err;
+            }
         }
 
         const totalSegments = Math.ceil(duration / CHUNK_DURATION);
@@ -160,10 +171,10 @@ async function transcribeAudio(inputSource, clientDuration = null, onProgress = 
                 throw err;
             }
 
-            // High-precision DYNAMIC delay to respect ASPH after each batch
             const baseDelay = 3000;
             const dynamicDelay = baseDelay + (Math.floor(start / CHUNK_DURATION) * 500); 
             console.log(`[Studio] Batch complete. Resting for ${dynamicDelay/1000}s...`);
+            await new Promise(r => setTimeout(r, dynamicDelay));
         }
 
         return allSegments.sort((a,b) => a.time - b.time);
