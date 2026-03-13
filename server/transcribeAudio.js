@@ -28,12 +28,36 @@ async function transcribeAudio(inputSource, clientDuration = null, onProgress = 
     let isTempFile = false;
 
     try {
-    // Total Stability: Rely on client metadata to avoid server-side binary dependency
-    let duration = 0;
-    const potentialDuration = parseFloat(clientDuration);
-    
-    // Note: audioPath is either a local path or a Cloudinary URL
-    const isUrl = audioPath.startsWith('http');
+    let audioPath = inputSource;
+    let isTempFile = false;
+
+    try {
+        // If input is a URL, download it locally first for reliable ffprobe/chunking
+        if (inputSource.startsWith('http')) {
+            console.log('[Studio] Downloading Cloud Asset for analysis...');
+            const tempDir = path.join(__dirname, 'uploads');
+            if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
+            
+            audioPath = path.join(tempDir, `transcribe_${Date.now()}.mp3`);
+            isTempFile = true;
+            
+            const response = await axios({
+                url: inputSource,
+                method: 'GET',
+                responseType: 'stream'
+            });
+            
+            await new Promise((resolve, reject) => {
+                const writer = fs.createWriteStream(audioPath);
+                response.data.pipe(writer);
+                writer.on('finish', resolve);
+                writer.on('error', reject);
+            });
+        }
+
+        // Total Stability: Rely on client metadata to avoid server-side binary dependency
+        let duration = 0;
+        const potentialDuration = parseFloat(clientDuration);
         
         if (!isNaN(potentialDuration) && potentialDuration > 0) {
             duration = potentialDuration;
@@ -71,15 +95,15 @@ async function transcribeAudio(inputSource, clientDuration = null, onProgress = 
                 if (segmentStart >= duration) break;
 
                 const segmentIndex = Math.floor(segmentStart / CHUNK_DURATION) + 1;
-                const chunkPath = path.join(tempDir, `chunk_${jobId || Date.now()}_${segmentIndex}.mp3`);
+                const chunkPath = path.join(tempDir, `chunk_${Date.now()}_${segmentIndex}.mp3`);
                 
                 const processSegment = async () => {
                    try {
                         if (onProgress) {
-                          onProgress(`Streaming Studio Segment ${segmentIndex}/${totalSegments}...`);
+                          onProgress(`Analyzing Studio Segment ${segmentIndex}/${totalSegments}...`);
                         }
 
-                        // Extract chunk directly from URL or file
+                        // Extract chunk from local file (Reliable)
                         await new Promise((resolve, reject) => {
                             ffmpeg(audioPath)
                                 .setStartTime(segmentStart)
@@ -144,16 +168,17 @@ async function transcribeAudio(inputSource, clientDuration = null, onProgress = 
             const baseDelay = 3000;
             const dynamicDelay = baseDelay + (Math.floor(start / CHUNK_DURATION) * 500); 
             console.log(`[Studio] Batch complete. Resting for ${dynamicDelay/1000}s...`);
-            await new Promise(r => setTimeout(r, dynamicDelay));
         }
 
         return allSegments.sort((a,b) => a.time - b.time);
 
-        return allSegments;
-
     } catch (error) {
         console.error('Transcription Sequencing Error:', error.message);
         throw new Error(`Studio Analysis Failed: ${error.message}`);
+    } finally {
+        if (isTempFile && fs.existsSync(audioPath)) {
+            try { fs.unlinkSync(audioPath); } catch (e) {}
+        }
     }
 }
 
