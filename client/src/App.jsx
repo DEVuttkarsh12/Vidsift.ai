@@ -329,7 +329,7 @@ function App() {
         {/* Elite Header */}
         <header className="studio-header reveal">
           <h1 className="logo-text-elite">VidSift</h1>
-          <p className="tagline-elite">Professional Audio-To-Script Workflow</p>
+          <p className="tagline-elite">Find any moment inside your video instantly</p>
         </header>
 
         {/* Upload Interstitial */}
