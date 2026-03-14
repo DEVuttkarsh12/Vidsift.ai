@@ -477,3 +477,151 @@ body {
 .delay-2 {
   animation-delay: 0.4s;
 }
+
+/* --- THE CUTTING ROOM --- */
+
+.clip-editor-panel {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  background: rgba(10, 10, 12, 0.8);
+  border: 1px solid rgba(253, 186, 116, 0.15);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 40px -10px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.clip-editor-panel::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(253, 186, 116, 0.5), transparent);
+}
+
+.clip-editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px dashed rgba(255,255,255,0.05);
+}
+
+.clip-controls {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.clip-stat-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 80px;
+}
+
+.slider-container {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0 1rem;
+  border-left: 1px solid rgba(255,255,255,0.05);
+  border-right: 1px solid rgba(255,255,255,0.05);
+}
+
+.slider-labels {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.stat-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.stat-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1rem;
+  color: var(--text-main);
+  font-weight: 500;
+}
+
+.stat-value.highlight {
+  color: var(--accent);
+  font-size: 1.1rem;
+}
+
+/* Custom Range Slider */
+.elite-duration-slider {
+  -webkit-appearance: none;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.03);
+  height: 8px;
+  border-radius: 4px;
+  outline: none;
+  border: 1px solid rgba(255,255,255,0.05);
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+}
+
+.elite-duration-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: grab;
+  box-shadow: 0 0 10px rgba(253, 186, 116, 0.4), 0 0 20px rgba(253, 186, 116, 0.2);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 2px solid #fff;
+}
+
+.elite-duration-slider::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.2);
+}
+
+/* Premium Cut Button */
+.btn-cut-action {
+  background: linear-gradient(135deg, rgba(253, 186, 116, 0.1), rgba(253, 186, 116, 0.05));
+  border: 1px solid rgba(253, 186, 116, 0.3);
+  color: var(--accent);
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.btn-cut-action:hover:not(:disabled) {
+  background: var(--accent);
+  color: var(--bg-dark);
+  box-shadow: 0 0 20px rgba(253, 186, 116, 0.4);
+  transform: translateY(-2px);
+}
+
+.btn-cut-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Timeline Active State */
+.btn-mini.active-scissor {
+  background: var(--accent);
+  color: var(--bg-dark);
+  border-color: transparent;
+  transform: scale(1.1);
+  box-shadow: 0 0 15px rgba(253, 186, 116, 0.4);
+}

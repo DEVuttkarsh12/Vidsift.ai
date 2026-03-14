@@ -406,28 +406,32 @@ function App() {
                 
                 {activeClip && (
                   <div className="clip-editor-panel reveal">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                      <span className="segment-meta" style={{ marginBottom: 0, color: 'var(--text-main)' }}>The Cutting Room</span>
+                    <div className="clip-editor-header">
+                      <div>
+                        <span className="segment-meta" style={{ marginBottom: '0.2rem', color: 'var(--text-main)' }}>The Cutting Room</span>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'Inter' }}>Fine-tune your extraction length</p>
+                      </div>
                       <button 
-                        className="btn-primary-elite" 
-                        style={{ padding: '0.8rem 1.5rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                        className="btn-cut-action" 
                         onClick={() => handleDownloadClip(activeClip.start, activeClip.end)}
                         disabled={isClipping}
                       >
                         {isClipping ? <Loader2 size={16} className="spin" /> : <Scissors size={16} />}
-                        {isClipping ? 'CUTTING...' : 'CUT SELECTION'}
+                        {isClipping ? 'CUTTING...' : 'EXTRACT CLIP'}
                       </button>
                     </div>
                     
-                    <div className="clip-sliders">
-                      <div className="slider-group" style={{ opacity: 0.5 }}>
-                        <label>IN (LOCKED):</label>
-                        <span style={{ fontFamily: 'JetBrains Mono', color: 'var(--text-main)', fontSize: '0.9rem' }}>
-                          {formatTime(activeClip.start)}
-                        </span>
+                    <div className="clip-controls">
+                      <div className="clip-stat-box">
+                        <span className="stat-label">START (LOCKED)</span>
+                        <span className="stat-value">{formatTime(activeClip.start)}</span>
                       </div>
-                      <div className="slider-group" style={{ marginTop: '0.5rem' }}>
-                        <label>DURATION:</label>
+                      
+                      <div className="slider-container">
+                        <div className="slider-labels">
+                          <span className="stat-label">DURATION</span>
+                          <span className="stat-value highlight">{Math.max(0.5, activeClip.end - activeClip.start).toFixed(1)}s</span>
+                        </div>
                         <input 
                           type="range" 
                           min="0.5" 
@@ -442,14 +446,13 @@ function App() {
                               handleJumpToTime(newEnd, false);
                             }
                           }}
-                          className="elite-slider"
+                          className="elite-duration-slider"
                         />
-                        <span style={{ fontFamily: 'JetBrains Mono', color: 'var(--text-main)', minWidth: '45px', textAlign: 'right' }}>
-                          {Math.max(0.5, activeClip.end - activeClip.start).toFixed(1)}s
-                        </span>
                       </div>
-                      <div className="clip-length-badge" style={{ alignSelf: 'center', marginTop: '1rem', background: 'rgba(253, 186, 116, 0.1)', color: 'var(--accent)', border: '1px solid rgba(253, 186, 116, 0.3)', boxShadow: 'none' }}>
-                        OUT POINT: {formatTime(activeClip.end)}
+
+                      <div className="clip-stat-box">
+                        <span className="stat-label">END POINT</span>
+                        <span className="stat-value">{formatTime(activeClip.end)}</span>
                       </div>
                     </div>
                   </div>
