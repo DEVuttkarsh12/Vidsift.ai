@@ -416,44 +416,36 @@ function App() {
                     </div>
                     
                     <div className="clip-sliders">
-                      <div className="slider-group">
-                        <label>IN: {formatTime(activeClip.start)}</label>
+                      <div className="slider-group" style={{ opacity: 0.5 }}>
+                        <label>IN (LOCKED):</label>
+                        <span style={{ fontFamily: 'JetBrains Mono', color: 'var(--text-main)', fontSize: '0.9rem' }}>
+                          {formatTime(activeClip.start)}
+                        </span>
+                      </div>
+                      <div className="slider-group" style={{ marginTop: '0.5rem' }}>
+                        <label>DURATION:</label>
                         <input 
                           type="range" 
-                          min="0" 
-                          max={activeClip.maxDuration || videoDuration || 100} 
-                          step="0.1" 
-                          value={activeClip.start}
+                          min="0.5" 
+                          max="60" 
+                          step="0.5" 
+                          value={Math.min(60, Math.max(0.5, activeClip.end - activeClip.start))}
                           onChange={(e) => {
-                            const val = parseFloat(e.target.value);
-                            if (val < activeClip.end) {
-                              setActiveClip({ ...activeClip, start: val });
-                              handleJumpToTime(val);
+                            const duration = parseFloat(e.target.value);
+                            const newEnd = activeClip.start + duration;
+                            if (newEnd <= (activeClip.maxDuration || videoDuration)) {
+                              setActiveClip({ ...activeClip, end: newEnd });
+                              handleJumpToTime(newEnd);
                             }
                           }}
                           className="elite-slider"
                         />
+                        <span style={{ fontFamily: 'JetBrains Mono', color: 'var(--text-main)', minWidth: '45px', textAlign: 'right' }}>
+                          {Math.max(0.5, activeClip.end - activeClip.start).toFixed(1)}s
+                        </span>
                       </div>
-                      <div className="slider-group">
-                        <label>OUT: {formatTime(activeClip.end)}</label>
-                        <input 
-                          type="range" 
-                          min="0" 
-                          max={activeClip.maxDuration || videoDuration || 100} 
-                          step="0.1" 
-                          value={activeClip.end}
-                          onChange={(e) => {
-                            const val = parseFloat(e.target.value);
-                            if (val > activeClip.start) {
-                              setActiveClip({ ...activeClip, end: val });
-                              handleJumpToTime(val);
-                            }
-                          }}
-                          className="elite-slider"
-                        />
-                      </div>
-                      <div className="clip-length-badge">
-                        Duration: {Math.max(0, activeClip.end - activeClip.start).toFixed(1)}s
+                      <div className="clip-length-badge" style={{ alignSelf: 'center', marginTop: '1rem', background: 'rgba(253, 186, 116, 0.1)', color: 'var(--accent)', border: '1px solid rgba(253, 186, 116, 0.3)', boxShadow: 'none' }}>
+                        OUT POINT: {formatTime(activeClip.end)}
                       </div>
                     </div>
                   </div>
