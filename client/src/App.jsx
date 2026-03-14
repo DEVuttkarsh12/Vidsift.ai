@@ -76,10 +76,14 @@ function App() {
     }
   };
 
-  const handleJumpToTime = (time) => {
+  const handleJumpToTime = (time, shouldPlay = true) => {
     if (videoRef.current) {
       videoRef.current.currentTime = time;
-      videoRef.current.play();
+      if (shouldPlay) {
+        videoRef.current.play();
+      } else {
+        videoRef.current.pause();
+      }
     }
   };
 
@@ -435,7 +439,7 @@ function App() {
                             const newEnd = activeClip.start + duration;
                             if (newEnd <= (activeClip.maxDuration || videoDuration)) {
                               setActiveClip({ ...activeClip, end: newEnd });
-                              handleJumpToTime(newEnd);
+                              handleJumpToTime(newEnd, false);
                             }
                           }}
                           className="elite-slider"
@@ -476,7 +480,7 @@ function App() {
               </div>
               <div className="timeline-scroll">
                 {filteredTranscript.map((item, index) => (
-                  <div key={index} className="script-segment" onClick={() => handleJumpToTime(item.time)}>
+                  <div key={index} className="script-segment" onClick={() => handleJumpToTime(item.time, false)}>
                     <span className="segment-meta">TC: {formatTime(item.time)}</span>
                     <p className="segment-text">{item.text}</p>
                     <div className="segment-actions">
@@ -490,7 +494,7 @@ function App() {
                             maxDuration: videoDuration,
                             originalTime: item.time 
                           });
-                          handleJumpToTime(item.time);
+                          handleJumpToTime(item.time, false);
                         }}
                         title="Load into Cutting Room"
                       >
