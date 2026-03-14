@@ -34,6 +34,7 @@ function App() {
   const [serverHealth, setServerHealth] = useState('checking');
   const [studioStatus, setStudioStatus] = useState('');
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [activeClip, setActiveClip] = useState(null);
 
   const ffmpegRef = useRef(new FFmpeg());
   const [ffmpegLoaded, setFfmpegLoaded] = useState(false);
@@ -98,7 +99,7 @@ function App() {
     try {
       const ffmpeg = ffmpegRef.current;
       setStudioStatus('Mounting Studio Assets...');
-      
+
       // WorkerFS Mounting: Memory-efficient way to handle 2GB+ files
       // Instead of reading the whole blob into RAM, we mount it as a virtual drive
       const folder = '/work';
@@ -107,13 +108,13 @@ function App() {
       } catch (e) {
         // Directory may already exist from previous session
       }
-      
+
       await ffmpeg.mount('WORKERFS', {
         files: [file],
       }, folder);
 
       setStudioStatus('Scrubbing Studio Audio...');
-      
+
       // Update extraction progress listener
       const progressHandler = ({ progress }) => {
         setExtractionProgress(Math.round(progress * 100));
@@ -121,19 +122,19 @@ function App() {
       ffmpeg.on('progress', progressHandler);
 
       await ffmpeg.exec([
-        '-i', `${folder}/${file.name}`, 
-        '-vn', 
-        '-ac', '1', 
-        '-ar', '16000', 
-        '-b:a', '12k', 
-        '-f', 'mp3', 
+        '-i', `${folder}/${file.name}`,
+        '-vn',
+        '-ac', '1',
+        '-ar', '16000',
+        '-b:a', '12k',
+        '-f', 'mp3',
         'audio.mp3'
       ]);
-      
+
       setStudioStatus('Reading Extractions...');
       const audioData = await ffmpeg.readFile('audio.mp3');
       const audioBlob = new Blob([audioData.buffer], { type: 'audio/mp3' });
-      
+
       // Cleanup mount
       try {
         await ffmpeg.unmount(folder);
@@ -154,12 +155,12 @@ function App() {
       const sigData = await sigRes.json();
 
       setStudioStatus('Buffering to Cloud (0%)');
-      
+
       // Manual XHR for upload progress tracking
       const audioUrl = await new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open('POST', `https://api.cloudinary.com/v1_1/${sigData.cloud_name}/auto/upload`);
-        
+
         xhr.upload.onprogress = (e) => {
           if (e.lengthComputable) {
             const percent = Math.round((e.loaded / e.total) * 100);
@@ -176,7 +177,7 @@ function App() {
             reject(new Error('Cloud buffering failed.'));
           }
         };
-        
+
         xhr.onerror = () => reject(new Error('Cloud connection error.'));
 
         const cloudFormData = new FormData();
@@ -189,7 +190,7 @@ function App() {
       });
       // Ensure duration is captured precisely (Prefer state, fallback to ref)
       const duration = videoDuration || (videoRef.current ? videoRef.current.duration : 0);
-      
+
       if (!duration || duration <= 0) {
         console.warn('[Studio] Critical: No video duration detected.');
       }
@@ -266,10 +267,10 @@ function App() {
       const ffmpeg = ffmpegRef.current;
       const duration = end - start;
       const folder = '/work_clip';
-      
-      try { 
-        await ffmpeg.createDir(folder); 
-      } catch (e) {}
+
+      try {
+        await ffmpeg.createDir(folder);
+      } catch (e) { }
 
       // WorkerFS for clips: Memory-efficient for massive source videos
       await ffmpeg.mount('WORKERFS', {
@@ -285,7 +286,6 @@ function App() {
       ]);
 
       const data = await ffmpeg.readFile('output.mp4');
-      
       // Early cleanup
       await ffmpeg.unmount(folder);
 
@@ -387,11 +387,11 @@ function App() {
             <div className="elite-panel monitor-panel">
               <span className="segment-meta">Master Monitor</span>
               <div className="monitor-frame">
-                <video 
-                  ref={videoRef} 
-                  src={videoUrl} 
+                <video
+                  ref={videoRef}
+                  src={videoUrl}
                   onLoadedMetadata={(e) => setVideoDuration(e.target.duration)}
-                  controls 
+                  controls
                 />
               </div>
               <div style={{ marginTop: '2rem' }}>
@@ -399,6 +399,65 @@ function App() {
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
                   Synchronized playback & precision scrubbing.
                 </p>
+                
+                {activeClip && (
+                  <div className="clip-editor-panel reveal">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                      <span className="segment-meta" style={{ marginBottom: 0, color: 'var(--text-main)' }}>The Cutting Room</span>
+                      <button 
+                        className="btn-primary-elite" 
+                        style={{ padding: '0.8rem 1.5rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                        onClick={() => handleDownloadClip(activeClip.start, activeClip.end)}
+                        disabled={isClipping}
+                      >
+                        {isClipping ? <Loader2 size={16} className="spin" /> : <Scissors size={16} />}
+                        {isClipping ? 'CUTTING...' : 'CUT SELECTION'}
+                      </button>
+                    </div>
+                    
+                    <div className="clip-sliders">
+                      <div className="slider-group">
+                        <label>IN: {formatTime(activeClip.start)}</label>
+                        <input 
+                          type="range" 
+                          min="0" 
+                          max={activeClip.maxDuration || videoDuration || 100} 
+                          step="0.1" 
+                          value={activeClip.start}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value);
+                            if (val < activeClip.end) {
+                              setActiveClip({ ...activeClip, start: val });
+                              handleJumpToTime(val);
+                            }
+                          }}
+                          className="elite-slider"
+                        />
+                      </div>
+                      <div className="slider-group">
+                        <label>OUT: {formatTime(activeClip.end)}</label>
+                        <input 
+                          type="range" 
+                          min="0" 
+                          max={activeClip.maxDuration || videoDuration || 100} 
+                          step="0.1" 
+                          value={activeClip.end}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value);
+                            if (val > activeClip.start) {
+                              setActiveClip({ ...activeClip, end: val });
+                              handleJumpToTime(val);
+                            }
+                          }}
+                          className="elite-slider"
+                        />
+                      </div>
+                      <div className="clip-length-badge">
+                        Duration: {Math.max(0, activeClip.end - activeClip.start).toFixed(1)}s
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -429,7 +488,20 @@ function App() {
                     <span className="segment-meta">TC: {formatTime(item.time)}</span>
                     <p className="segment-text">{item.text}</p>
                     <div className="segment-actions">
-                      <button className="btn-mini" onClick={(e) => { e.stopPropagation(); handleDownloadClip(item.time, item.time_end); }}>
+                      <button 
+                        className={`btn-mini ${activeClip?.originalTime === item.time ? 'active-scissor' : ''}`} 
+                         onClick={(e) => { 
+                          e.stopPropagation(); 
+                          setActiveClip({ 
+                            start: item.time, 
+                            end: item.time_end || (item.time + 3), 
+                            maxDuration: videoDuration,
+                            originalTime: item.time 
+                          });
+                          handleJumpToTime(item.time);
+                        }}
+                        title="Load into Cutting Room"
+                      >
                         <Scissors size={14} />
                       </button>
                     </div>
