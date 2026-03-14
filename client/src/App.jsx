@@ -389,7 +389,7 @@ function App() {
           <div className="workspace-grid reveal delay-1">
             {/* Monitor */}
             <div className="elite-panel monitor-panel">
-              <span className="segment-meta">Master Monitor</span>
+              <span className="segment-meta">Your Video</span>
               <div className="monitor-frame">
                 <video
                   ref={videoRef}
@@ -399,9 +399,9 @@ function App() {
                 />
               </div>
               <div style={{ marginTop: '2rem' }}>
-                <h3 style={{ fontFamily: 'Fraunces', fontSize: '1.5rem' }}>Active Scene</h3>
+                <h3 style={{ fontFamily: 'Fraunces', fontSize: '1.5rem' }}>Current Clip</h3>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                  Synchronized playback & precision scrubbing.
+                  Watch your video and fine-tune your clips.
                 </p>
                 
                 {activeClip && (
@@ -463,7 +463,7 @@ function App() {
             {/* Script Timeline */}
             <div className="elite-panel timeline-panel">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <span className="segment-meta" style={{ marginBottom: 0 }}>Script Timeline</span>
+                <span className="segment-meta" style={{ marginBottom: 0 }}>Video Script</span>
                 <button className="export-btn-studio" onClick={handleExportTranscript}>
                   <Download size={14} /> EXPORT REPORT
                 </button>
@@ -474,7 +474,7 @@ function App() {
                   <input
                     className="search-field-elite"
                     type="text"
-                    placeholder="Refine segments..."
+                    placeholder="Search video script..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
