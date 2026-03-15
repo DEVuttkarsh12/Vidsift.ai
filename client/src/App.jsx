@@ -69,6 +69,9 @@ function App() {
     // Check active session & subscribe to auth changes
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
+      if (!session?.user) {
+        setShowAuthModal(true);
+      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -405,31 +408,7 @@ function App() {
           )}
         </header>
 
-        {/* Upload Interstitial */}
-        {!transcript && !isUploading && (
-          <div className="upload-modal reveal delay-1">
-            <div className="elite-panel upload-card-elite">
-              <Upload size={48} className="upload-icon-elite" />
-              <h2 className="upload-title-elite">
-                {file ? file.name : 'Start New Project'}
-              </h2>
-              <p className="upload-subtitle-elite">
-                Import high-fidelity video files for deep AI analysis.
-              </p>
-              <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="video/*" hidden />
-              <div className="upload-actions-elite">
-                <button className="btn-primary-elite" onClick={() => fileInputRef.current.click()}>
-                  {file ? 'Change Source' : 'Select Video'}
-                </button>
-                {file && (
-                  <button className="btn-primary-elite" onClick={handleUpload}>
-                    Analyze Studio
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Upload Interstitial REMOVED - Integrated into workspace */}
 
         {/* Global Loading Layer */}
         {isUploading && (
@@ -458,24 +437,44 @@ function App() {
         )}
 
         {/* Workspace Layer */}
-        {transcript && (
+        {!isUploading && (
           <div className="workspace-grid reveal delay-1">
             {/* Monitor */}
             <div className="elite-panel monitor-panel">
               <span className="segment-meta">Your Video</span>
-              <div className="monitor-frame">
-                <video
-                  ref={videoRef}
-                  src={videoUrl}
-                  onLoadedMetadata={(e) => setVideoDuration(e.target.duration)}
-                  controls
-                />
+              <div 
+                className="monitor-frame" 
+                style={!file ? { display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1rem', background: 'rgba(0,0,0,0.5)', cursor: 'pointer' } : {}}
+                onClick={() => !file && fileInputRef.current?.click()}
+              >
+                {videoUrl ? (
+                  <video
+                    ref={videoRef}
+                    src={videoUrl}
+                    onLoadedMetadata={(e) => setVideoDuration(e.target.duration)}
+                    controls
+                  />
+                ) : (
+                  <>
+                    <Upload size={48} className="upload-icon-elite" style={{ marginBottom: '1rem', color: 'var(--text-muted)' }} />
+                    <h2 style={{ fontFamily: 'Fraunces', color: 'var(--text-main)', fontSize: '1.5rem', margin: 0 }}>Start New Project</h2>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1rem' }}>Import high-fidelity video files for deep AI analysis.</p>
+                    <button className="btn-primary-elite" onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}>Select Video</button>
+                    <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="video/*" hidden />
+                  </>
+                )}
               </div>
               <div style={{ marginTop: '2rem' }}>
                 <h3 style={{ fontFamily: 'Fraunces', fontSize: '1.5rem' }}>Current Clip</h3>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                  Watch your video and fine-tune your clips.
+                  {file ? 'Watch your video and fine-tune your clips.' : 'Upload a video to start editing.'}
                 </p>
+                
+                {file && !transcript && !isUploading && (
+                  <button className="btn-primary-elite" onClick={handleUpload} style={{ width: '100%', marginTop: '1.5rem' }}>
+                    <Zap size={16} /> <span style={{ marginLeft: '8px' }}>Analyze Studio</span>
+                  </button>
+                )}
                 
                 {activeClip && (
                   <div className="clip-editor-panel reveal">
@@ -555,30 +554,42 @@ function App() {
                 </div>
               </div>
               <div className="timeline-scroll">
-                {filteredTranscript.map((item, index) => (
-                  <div key={index} className="script-segment" onClick={() => handleJumpToTime(item.time, false)}>
-                    <span className="segment-meta">TC: {formatTime(item.time)}</span>
-                    <p className="segment-text">{item.text}</p>
-                    <div className="segment-actions">
-                      <button 
-                        className={`btn-mini ${activeClip?.originalTime === item.time ? 'active-scissor' : ''}`} 
-                         onClick={(e) => { 
-                          e.stopPropagation(); 
-                          setActiveClip({ 
-                            start: item.time, 
-                            end: item.time_end || (item.time + 3), 
-                            maxDuration: videoDuration,
-                            originalTime: item.time 
-                          });
-                          handleJumpToTime(item.time, false);
-                        }}
-                        title="Load into Cutting Room"
-                      >
-                        <Scissors size={14} />
-                      </button>
+                {!file ? (
+                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', gap: '1rem', opacity: 0.5, padding: '4rem 0' }}>
+                     <Music size={48} />
+                     <p style={{ fontFamily: 'Inter', fontSize: '0.9rem' }}>Awaiting video source...</p>
+                   </div>
+                ) : !transcript ? (
+                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', gap: '1rem', opacity: 0.5, padding: '4rem 0' }}>
+                     <Zap size={48} />
+                     <p style={{ fontFamily: 'Inter', fontSize: '0.9rem' }}>Ready for AI Analysis</p>
+                   </div>
+                ) : (
+                  filteredTranscript.map((item, index) => (
+                    <div key={index} className="script-segment" onClick={() => handleJumpToTime(item.time, false)}>
+                      <span className="segment-meta">TC: {formatTime(item.time)}</span>
+                      <p className="segment-text">{item.text}</p>
+                      <div className="segment-actions">
+                        <button 
+                          className={`btn-mini ${activeClip?.originalTime === item.time ? 'active-scissor' : ''}`} 
+                           onClick={(e) => { 
+                            e.stopPropagation(); 
+                            setActiveClip({ 
+                              start: item.time, 
+                              end: item.time_end || (item.time + 3), 
+                              maxDuration: videoDuration,
+                              originalTime: item.time 
+                            });
+                            handleJumpToTime(item.time, false);
+                          }}
+                          title="Load into Cutting Room"
+                        >
+                          <Scissors size={14} />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           </div>
