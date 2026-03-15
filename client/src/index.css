@@ -799,3 +799,31 @@ body {
   color: var(--text-main);
   text-decoration-color: var(--text-main);
 }
+
+/* --- Header Authentication Button --- */
+.auth-btn-header {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-main);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+  padding: 0.6rem 1.2rem;
+  border-radius: 100px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.auth-btn-header:hover {
+  background: var(--accent);
+  color: var(--bg-dark);
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(253, 186, 116, 0.3);
+}
+
+.auth-btn-header:active {
+  transform: translateY(0);
+}

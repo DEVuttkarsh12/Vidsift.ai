@@ -390,9 +390,12 @@ function App() {
           </div>
           {user ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontFamily: 'Inter' }}>{user.email}</span>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontFamily: 'Inter', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent)', boxShadow: '0 0 10px var(--accent)' }}></div>
+                {user.email}
+              </span>
               <button 
-                className="btn-skip" 
+                className="auth-btn-header" 
                 onClick={() => supabase.auth.signOut()}
               >
                 Log Out
@@ -400,7 +403,7 @@ function App() {
             </div>
           ) : (
             <button 
-              className="btn-skip" 
+              className="auth-btn-header" 
               onClick={() => setShowAuthModal(true)}
             >
               Sign In
