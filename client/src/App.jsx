@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import logo from './assets/vidsift-final__1_-removebg-preview.png';
 import './index.css';
+import AuthModal from './AuthModal';
+import { supabase } from './supabaseClient';
 
 function App() {
   const [file, setFile] = useState(null);
@@ -35,6 +37,11 @@ function App() {
   const [studioStatus, setStudioStatus] = useState('');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [activeClip, setActiveClip] = useState(null);
+  
+  // Auth state
+  const [user, setUser] = useState(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null);
 
   const ffmpegRef = useRef(new FFmpeg());
   const [ffmpegLoaded, setFfmpegLoaded] = useState(false);
@@ -58,6 +65,17 @@ function App() {
       }
     };
     load();
+
+    // Check active session & subscribe to auth changes
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const getBaseUrl = () => {
@@ -238,6 +256,17 @@ function App() {
 
   const handleExportTranscript = () => {
     if (!transcript) return;
+
+    if (!user) {
+      setPendingAction(() => () => triggerExportTranscript());
+      setShowAuthModal(true);
+      return;
+    }
+
+    triggerExportTranscript();
+  };
+
+  const triggerExportTranscript = () => {
     const doc = new jsPDF();
     doc.setFont("helvetica", "bold");
     doc.setFontSize(22);
@@ -264,7 +293,16 @@ function App() {
     doc.save(`VidSift_Report_${file?.name || 'export'}.pdf`);
   };
 
-  const handleDownloadClip = async (start, end) => {
+  const handleDownloadClip = (start, end) => {
+    if (!user) {
+      setPendingAction(() => () => triggerDownloadClip(start, end));
+      setShowAuthModal(true);
+      return;
+    }
+    triggerDownloadClip(start, end);
+  };
+
+  const triggerDownloadClip = async (start, end) => {
     if (!file) return;
     setIsClipping(true);
     try {
@@ -325,11 +363,46 @@ function App() {
         )}
       </div>
 
+      <AuthModal 
+        isOpen={showAuthModal} 
+        onClose={() => {
+          setShowAuthModal(false);
+          setPendingAction(null);
+        }}
+        onSuccess={() => {
+          setShowAuthModal(false);
+          if (pendingAction) {
+            pendingAction();
+            setPendingAction(null);
+          }
+        }}
+      />
+
       <div className="container">
         {/* Elite Header */}
-        <header className="studio-header reveal">
-          <h1 className="logo-text-elite">VidSift</h1>
-          <p className="tagline-elite">Find any moment inside your video instantly</p>
+        <header className="studio-header reveal" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h1 className="logo-text-elite">VidSift</h1>
+            <p className="tagline-elite">Find any moment inside your video instantly</p>
+          </div>
+          {user ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontFamily: 'Inter' }}>{user.email}</span>
+              <button 
+                className="btn-skip" 
+                onClick={() => supabase.auth.signOut()}
+              >
+                Log Out
+              </button>
+            </div>
+          ) : (
+            <button 
+              className="btn-skip" 
+              onClick={() => setShowAuthModal(true)}
+            >
+              Sign In
+            </button>
+          )}
         </header>
 
         {/* Upload Interstitial */}
