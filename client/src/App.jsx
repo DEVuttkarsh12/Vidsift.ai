@@ -37,7 +37,7 @@ function App() {
   const [studioStatus, setStudioStatus] = useState('');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [activeClip, setActiveClip] = useState(null);
-  
+
   // Auth state
   const [user, setUser] = useState(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -366,8 +366,8 @@ function App() {
         )}
       </div>
 
-      <AuthModal 
-        isOpen={showAuthModal} 
+      <AuthModal
+        isOpen={showAuthModal}
         onClose={() => {
           setShowAuthModal(false);
           setPendingAction(null);
@@ -394,16 +394,16 @@ function App() {
                 <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent)', boxShadow: '0 0 10px var(--accent)' }}></div>
                 {user.email}
               </span>
-              <button 
-                className="auth-btn-header" 
+              <button
+                className="auth-btn-header"
                 onClick={() => supabase.auth.signOut()}
               >
                 Log Out
               </button>
             </div>
           ) : (
-            <button 
-              className="auth-btn-header" 
+            <button
+              className="auth-btn-header"
               onClick={() => setShowAuthModal(true)}
             >
               Sign In
@@ -445,8 +445,8 @@ function App() {
             {/* Monitor */}
             <div className="elite-panel monitor-panel">
               <span className="segment-meta">Your Video</span>
-              <div 
-                className="monitor-frame" 
+              <div
+                className="monitor-frame"
                 style={!file ? { display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1rem', background: 'rgba(0,0,0,0.5)', cursor: 'pointer' } : {}}
                 onClick={() => !file && fileInputRef.current?.click()}
               >
@@ -472,13 +472,13 @@ function App() {
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
                   {file ? 'Watch your video and fine-tune your clips.' : 'Upload a video to start editing.'}
                 </p>
-                
+
                 {file && !transcript && !isUploading && (
                   <button className="btn-primary-elite" onClick={handleUpload} style={{ width: '100%', marginTop: '1.5rem' }}>
                     <Zap size={16} /> <span style={{ marginLeft: '8px' }}>Analyze Studio</span>
                   </button>
                 )}
-                
+
                 {activeClip && (
                   <div className="clip-editor-panel reveal">
                     <div className="clip-editor-header">
@@ -486,8 +486,8 @@ function App() {
                         <span className="segment-meta" style={{ marginBottom: '0.2rem', color: 'var(--text-main)' }}>The Cutting Room</span>
                         <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'Inter' }}>Fine-tune your extraction length</p>
                       </div>
-                      <button 
-                        className="btn-cut-action" 
+                      <button
+                        className="btn-cut-action"
                         onClick={() => handleDownloadClip(activeClip.start, activeClip.end)}
                         disabled={isClipping}
                       >
@@ -495,23 +495,23 @@ function App() {
                         {isClipping ? 'CUTTING...' : 'EXTRACT CLIP'}
                       </button>
                     </div>
-                    
+
                     <div className="clip-controls">
                       <div className="clip-stat-box">
                         <span className="stat-label">START (LOCKED)</span>
                         <span className="stat-value">{formatTime(activeClip.start)}</span>
                       </div>
-                      
+
                       <div className="slider-container">
                         <div className="slider-labels">
                           <span className="stat-label">DURATION</span>
                           <span className="stat-value highlight">{Math.max(0.5, activeClip.end - activeClip.start).toFixed(1)}s</span>
                         </div>
-                        <input 
-                          type="range" 
-                          min="0.5" 
-                          max="60" 
-                          step="0.5" 
+                        <input
+                          type="range"
+                          min="0.5"
+                          max="60"
+                          step="0.5"
                           value={Math.min(60, Math.max(0.5, activeClip.end - activeClip.start))}
                           onChange={(e) => {
                             const duration = parseFloat(e.target.value);
@@ -558,30 +558,30 @@ function App() {
               </div>
               <div className="timeline-scroll">
                 {!file ? (
-                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', gap: '1rem', opacity: 0.5, padding: '4rem 0' }}>
-                     <Music size={48} />
-                     <p style={{ fontFamily: 'Inter', fontSize: '0.9rem' }}>Awaiting video source...</p>
-                   </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', gap: '1rem', opacity: 0.5, padding: '4rem 0' }}>
+                    <Music size={48} />
+                    <p style={{ fontFamily: 'Inter', fontSize: '0.9rem' }}>Awaiting video source...</p>
+                  </div>
                 ) : !transcript ? (
-                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', gap: '1rem', opacity: 0.5, padding: '4rem 0' }}>
-                     <Zap size={48} />
-                     <p style={{ fontFamily: 'Inter', fontSize: '0.9rem' }}>Ready for AI Analysis</p>
-                   </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', gap: '1rem', opacity: 0.5, padding: '4rem 0' }}>
+                    <Zap size={48} />
+                    <p style={{ fontFamily: 'Inter', fontSize: '0.9rem' }}>Ready for AI Analysis</p>
+                  </div>
                 ) : (
                   filteredTranscript.map((item, index) => (
                     <div key={index} className="script-segment" onClick={() => handleJumpToTime(item.time, false)}>
                       <span className="segment-meta">TC: {formatTime(item.time)}</span>
                       <p className="segment-text">{item.text}</p>
                       <div className="segment-actions">
-                        <button 
-                          className={`btn-mini ${activeClip?.originalTime === item.time ? 'active-scissor' : ''}`} 
-                           onClick={(e) => { 
-                            e.stopPropagation(); 
-                            setActiveClip({ 
-                              start: item.time, 
-                              end: item.time_end || (item.time + 3), 
+                        <button
+                          className={`btn-mini ${activeClip?.originalTime === item.time ? 'active-scissor' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveClip({
+                              start: item.time,
+                              end: item.time_end || (item.time + 3),
                               maxDuration: videoDuration,
-                              originalTime: item.time 
+                              originalTime: item.time
                             });
                             handleJumpToTime(item.time, false);
                           }}
