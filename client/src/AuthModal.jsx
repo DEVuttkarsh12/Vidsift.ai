@@ -8,6 +8,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   if (!isOpen) return null;
 
@@ -21,12 +22,13 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
           if (error.message.includes("Invalid login credentials")) {
-            throw new Error("Create an account with this email first (or check your password).");
+            throw new Error("Invalid email or password. Please try again.");
           }
           throw error;
         }
+        onSuccess();
       } else {
-        const { error } = await supabase.auth.signUp({ email, password });
+        const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) {
           if (error.message.includes("User already registered")) {
             setIsLogin(true); // Auto-switch to login tab
@@ -34,9 +36,14 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
           }
           throw error;
         }
-        // Supabase might require email verification depending on project settings
+        
+        if (data?.session) {
+          onSuccess();
+        } else {
+          // Email confirmation is required
+          setShowConfirmation(true);
+        }
       }
-      onSuccess();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -73,15 +80,30 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
         <button className="auth-close" onClick={onClose}><X size={20} /></button>
         
         <div className="auth-header">
-          <h2 className="auth-title">{isLogin ? 'Welcome Back' : 'Create Account'}</h2>
+          <h2 className="auth-title">
+            {showConfirmation ? 'Check Your Email' : isLogin ? 'Welcome Back' : 'Create Account'}
+          </h2>
           <p className="auth-subtitle">
-            {isLogin 
-              ? 'Log in to save your clips and scripts securely.' 
-              : 'Sign up to export your premium video analysis.'}
+            {showConfirmation 
+              ? `We've sent a magic link to ${email}. Please check your inbox to confirm your account.`
+              : isLogin 
+                ? 'Log in to save your clips and scripts securely.' 
+                : 'Sign up to export your premium video analysis.'}
           </p>
         </div>
 
-        <div className="auth-tabs">
+        {showConfirmation ? (
+           <div style={{ textAlign: 'center', padding: '2rem 0' }}>
+             <div className="success-pulse" style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(34, 197, 94, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 2rem' }}>
+               <Mail size={32} style={{ color: '#22c55e' }} />
+             </div>
+             <button className="btn-primary-elite" onClick={() => { setShowConfirmation(false); setIsLogin(true); }} style={{ width: '100%' }}>
+               BACK TO LOGIN
+             </button>
+           </div>
+        ) : (
+          <>
+            <div className="auth-tabs">
           <button className={`auth-tab ${isLogin ? 'active' : ''}`} onClick={() => { setIsLogin(true); setError(null); }}>Log In</button>
           <button className={`auth-tab ${!isLogin ? 'active' : ''}`} onClick={() => { setIsLogin(false); setError(null); }}>Sign Up</button>
         </div>
@@ -136,6 +158,9 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
             )}
           </button>
         </form>
+
+          </>
+        )}
 
         <div className="auth-footer">
           <button className="btn-skip" onClick={onClose}>Skip for now, continue editing</button>
