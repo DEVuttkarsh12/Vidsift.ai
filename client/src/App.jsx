@@ -368,7 +368,7 @@ function App() {
         )}
       </div>
 
-      {user && (
+      {user ? (
         <div className="user-pill-elite">
           <div className="user-pill-info">
             <div className="user-pill-avatar">
@@ -382,6 +382,23 @@ function App() {
             title="Sign Out"
           >
             <LogOut size={14} />
+          </button>
+        </div>
+      ) : (
+        <div className="user-pill-elite" style={{ padding: '0.5rem' }}>
+          <button
+            className="btn-primary-elite"
+            onClick={() => setShowAuthModal(true)}
+            style={{ 
+              borderRadius: '100px', 
+              padding: '0.6rem 1.5rem', 
+              fontSize: '0.75rem', 
+              boxShadow: 'none',
+              background: 'var(--accent)',
+              color: 'var(--bg-dark)'
+            }}
+          >
+            SIGN IN
           </button>
         </div>
       )}
@@ -408,14 +425,7 @@ function App() {
             <h1 className="logo-text-elite">VidSift</h1>
             <p className="tagline-elite">Find any moment inside your video instantly</p>
           </div>
-          {!user && (
-            <button
-              className="auth-btn-header"
-              onClick={() => setShowAuthModal(true)}
-            >
-              Sign In
-            </button>
-          )}
+          <div></div>
         </header>
 
         {/* Upload Interstitial REMOVED - Integrated into workspace */}
