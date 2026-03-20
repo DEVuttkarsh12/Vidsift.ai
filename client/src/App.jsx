@@ -15,7 +15,9 @@ import {
   Scissors,
   Zap,
   Music,
-  Maximize2
+  Maximize2,
+  User,
+  LogOut
 } from 'lucide-react';
 import logo from './assets/vidsift-final__1_-removebg-preview.png';
 import './index.css';
@@ -366,6 +368,24 @@ function App() {
         )}
       </div>
 
+      {user && (
+        <div className="user-pill-elite">
+          <div className="user-pill-info">
+            <div className="user-pill-avatar">
+              <User size={16} />
+            </div>
+            <span className="user-pill-email">{user.email}</span>
+          </div>
+          <button 
+            className="pill-logout-btn" 
+            onClick={() => supabase.auth.signOut()}
+            title="Sign Out"
+          >
+            <LogOut size={14} />
+          </button>
+        </div>
+      )}
+
       <AuthModal
         isOpen={showAuthModal}
         onClose={() => {
@@ -388,20 +408,7 @@ function App() {
             <h1 className="logo-text-elite">VidSift</h1>
             <p className="tagline-elite">Find any moment inside your video instantly</p>
           </div>
-          {user ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontFamily: 'Inter', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent)', boxShadow: '0 0 10px var(--accent)' }}></div>
-                {user.email}
-              </span>
-              <button
-                className="auth-btn-header"
-                onClick={() => supabase.auth.signOut()}
-              >
-                Log Out
-              </button>
-            </div>
-          ) : (
+          {!user && (
             <button
               className="auth-btn-header"
               onClick={() => setShowAuthModal(true)}
