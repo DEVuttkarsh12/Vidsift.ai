@@ -376,8 +376,8 @@ function App() {
             </div>
             <span className="user-pill-email">{user.email}</span>
           </div>
-          <button 
-            className="pill-logout-btn" 
+          <button
+            className="pill-logout-btn"
             onClick={() => supabase.auth.signOut()}
             title="Sign Out"
           >
@@ -389,10 +389,10 @@ function App() {
           <button
             className="btn-primary-elite"
             onClick={() => setShowAuthModal(true)}
-            style={{ 
-              borderRadius: '100px', 
-              padding: '0.6rem 1.5rem', 
-              fontSize: '0.75rem', 
+            style={{
+              borderRadius: '100px',
+              padding: '0.6rem 1.5rem',
+              fontSize: '0.75rem',
               boxShadow: 'none',
               background: 'var(--accent)',
               color: 'var(--bg-dark)'
@@ -495,7 +495,6 @@ function App() {
                     <Zap size={16} /> <span style={{ marginLeft: '8px' }}>Analyze Studio</span>
                   </button>
                 )}
-
                 {activeClip && (
                   <div className="clip-editor-panel reveal">
                     <div className="clip-editor-header">
