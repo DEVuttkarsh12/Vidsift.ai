@@ -17,7 +17,8 @@ import {
   Music,
   Maximize2,
   User,
-  LogOut
+  LogOut,
+  Crown
 } from 'lucide-react';
 import logo from './assets/vidsift-final__1_-removebg-preview.png';
 import './index.css';
@@ -44,6 +45,7 @@ function App() {
   const [user, setUser] = useState(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
+  const [isPro, setIsPro] = useState(false);
 
   const ffmpegRef = useRef(new FFmpeg());
   const [ffmpegLoaded, setFfmpegLoaded] = useState(false);
@@ -69,15 +71,26 @@ function App() {
     load();
 
     // Check active session & subscribe to auth changes
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (!session?.user) {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      const activeUser = session?.user ?? null;
+      setUser(activeUser);
+      if (activeUser) {
+        const { data } = await supabase.from('profiles').select('is_pro').eq('id', activeUser.id).single();
+        setIsPro(data?.is_pro || false);
+      } else {
         setShowAuthModal(true);
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      const activeUser = session?.user ?? null;
+      setUser(activeUser);
+      if (activeUser) {
+        const { data } = await supabase.from('profiles').select('is_pro').eq('id', activeUser.id).single();
+        setIsPro(data?.is_pro || false);
+      } else {
+        setIsPro(false);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -89,6 +102,12 @@ function App() {
     return window.location.hostname !== 'localhost' ? 'https://error-missing-api-url.com' : 'http://localhost:5000';
   };
   const API_URL = getBaseUrl();
+  const GUMROAD_URL = "https://uttkarsh7.gumroad.com/l/briohv";
+
+  const openGumroad = () => {
+    const url = `${GUMROAD_URL}?email=${encodeURIComponent(user?.email || "")}`;
+    window.open(url, "_blank");
+  };
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -119,6 +138,12 @@ function App() {
 
   const handleUpload = async () => {
     if (!file || !ffmpegLoaded) return;
+    
+    if (!isPro) {
+      openGumroad();
+      return;
+    }
+
     setIsUploading(true);
     setIsExtracting(true);
     setError(null);
@@ -260,6 +285,10 @@ function App() {
   };
 
   const handleExportTranscript = () => {
+    if (!isPro) {
+      openGumroad();
+      return;
+    }
     if (!transcript) return;
 
     if (!user) {
@@ -299,6 +328,10 @@ function App() {
   };
 
   const handleDownloadClip = (start, end) => {
+    if (!isPro) {
+      openGumroad();
+      return;
+    }
     if (!user) {
       setPendingAction(() => () => triggerDownloadClip(start, end));
       setShowAuthModal(true);
@@ -372,9 +405,21 @@ function App() {
         <div className="user-pill-elite">
           <div className="user-pill-info">
             <div className="user-pill-avatar">
-              <User size={16} />
+              {isPro ? <Crown size={16} className="text-yellow-400" /> : <User size={16} />}
             </div>
-            <span className="user-pill-email">{user.email}</span>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span className="user-pill-email">{user.email}</span>
+              {isPro ? (
+                <span style={{ fontSize: '10px', color: 'var(--accent)', fontWeight: 'bold', letterSpacing: '0.1em' }}>PRO MEMBER</span>
+              ) : (
+                <button 
+                  onClick={openGumroad}
+                  style={{ background: 'none', border: 'none', padding: 0, color: 'var(--text-muted)', fontSize: '10px', textAlign: 'left', textDecoration: 'underline', cursor: 'pointer' }}
+                >
+                  UPGRADE
+                </button>
+              )}
+            </div>
           </div>
           <button
             className="pill-logout-btn"
@@ -491,8 +536,20 @@ function App() {
                 </p>
 
                 {file && !transcript && !isUploading && (
-                  <button className="btn-primary-elite" onClick={handleUpload} style={{ width: '100%', marginTop: '1.5rem' }}>
-                    <Zap size={16} /> <span style={{ marginLeft: '8px' }}>Analyze Studio</span>
+                  <button 
+                    className="btn-primary-elite" 
+                    onClick={handleUpload} 
+                    style={{ 
+                      width: '100%', 
+                      marginTop: '1.5rem',
+                      background: !isPro ? 'linear-gradient(45deg, #f59e0b, #d97706)' : 'var(--accent)',
+                      color: !isPro ? '#fff' : 'var(--bg-dark)'
+                    }}
+                  >
+                    {!isPro ? <Crown size={16} /> : <Zap size={16} />} 
+                    <span style={{ marginLeft: '8px' }}>
+                      {!isPro ? 'Start Free Trial to Analyze' : 'Analyze Studio'}
+                    </span>
                   </button>
                 )}
                 {activeClip && (
