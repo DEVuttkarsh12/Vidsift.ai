@@ -131,7 +131,7 @@ app.post('/api/analyze-audio', upload.single('audio'), async (req, res) => {
     (async () => {
         try {
             const transcript = await transcribeAudio(localAudioPath, duration, (msg) => {
-              jobs[jobId] = { ...jobs[jobId], message: msg };
+                jobs[jobId] = { ...jobs[jobId], message: msg };
             });
             if (fs.existsSync(localAudioPath)) fs.unlinkSync(localAudioPath);
             jobs[jobId] = { status: 'completed', transcript: transcript, completedAt: new Date() };
@@ -156,7 +156,7 @@ app.post('/api/analyze-audio-url', async (req, res) => {
         try {
             console.log(`[Job ${jobId}] Starting Cloud-Native Analysis:`, audioUrl, 'Duration:', duration);
             const transcript = await transcribeAudio(audioUrl, duration, (msg) => {
-              jobs[jobId] = { ...jobs[jobId], message: msg };
+                jobs[jobId] = { ...jobs[jobId], message: msg };
             });
             jobs[jobId] = { status: 'completed', transcript: transcript, completedAt: new Date() };
             console.log(`[Job ${jobId}] Analysis Successful.`);
@@ -304,16 +304,18 @@ const axios = require('axios');
 app.post('/api/webhooks/gumroad', async (req, res) => {
     try {
         const { email, sale_id, product_id, refunded, subscription_id, resource_name } = req.body;
-        
+
         console.log('[Webhook] Gumroad Ping received:', { email, resource_name, sale_id });
 
         if (!email) {
             return res.status(400).send('Bad Request');
         }
 
-        // Security: Verify sale with Gumroad API using our access token
+        // Security: Verify sale with Gumroad API
+        const isTest = req.body.test === 'true' || req.body.test === true;
         const GUMROAD_TOKEN = process.env.GUMROAD_ACCESS_TOKEN;
-        if (GUMROAD_TOKEN && sale_id) {
+
+        if (!isTest && GUMROAD_TOKEN && sale_id) {
             try {
                 const verification = await axios.get(
                     `https://api.gumroad.com/v2/sales/${sale_id}`,
@@ -327,12 +329,14 @@ app.post('/api/webhooks/gumroad', async (req, res) => {
             } catch (verifyErr) {
                 console.warn('[Webhook] Could not verify sale (non-blocking):', verifyErr.message);
             }
+        } else if (isTest) {
+            console.log('[Webhook] Test sale detected - bypassing external verification ✓');
         }
 
         // Supabase Admin Client (Service Role = bypasses RLS)
         const supabaseUrl = process.env.SUPABASE_URL;
         const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-        
+
         if (!supabaseUrl || !supabaseKey) {
             console.error('[Webhook] Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
             return res.status(500).send('Server config error');
@@ -343,17 +347,21 @@ app.post('/api/webhooks/gumroad', async (req, res) => {
         // Determine Pro status: refunded or subscription_ended = revoke
         const shouldBePro = !(refunded === 'true' || resource_name === 'subscription_ended' || resource_name === 'subscription_cancelled');
 
-        const { error } = await supabaseAdmin
+        const { data: updateData, error } = await supabaseAdmin
             .from('profiles')
-            .update({ is_pro: shouldBePro, gumroad_id: subscription_id || sale_id, updated_at: new Date().toISOString() })
-            .eq('email', email);
+            .update({ 
+                is_pro: shouldBePro, 
+                gumroad_id: subscription_id || sale_id, 
+                updated_at: new Date().toISOString() 
+            })
+            .ilike('email', email.trim()); // ilike for case-insensitive matching
 
         if (error) {
             console.error('[Webhook] DB update error:', error.message);
             return res.status(500).send('DB error');
         }
 
-        console.log(`[Webhook] ${email} → is_pro: ${shouldBePro} ✓`);
+        console.log(`[Webhook] Update complete for ${email} → is_pro: ${shouldBePro} ✓`);
         res.status(200).send('OK');
     } catch (err) {
         console.error('[Webhook] Fatal:', err.message);
