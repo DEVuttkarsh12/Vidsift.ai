@@ -70,30 +70,59 @@ function App() {
     };
     load();
 
-    // Check active session & subscribe to auth changes
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    const fetchProfile = async (u) => {
+      if (!u) {
+        setIsPro(false);
+        return;
+      }
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('is_pro')
+          .eq('id', u.id)
+          .single();
+        
+        if (error) throw error;
+        setIsPro(data?.is_pro || false);
+      } catch (err) {
+        console.error('[Profile Sync] Error:', err.message);
+      }
+    };
+
+    // Initial session load
+    supabase.auth.getSession().then(({ data: { session } }) => {
       const activeUser = session?.user ?? null;
       setUser(activeUser);
       if (activeUser) {
-        const { data } = await supabase.from('profiles').select('is_pro').eq('id', activeUser.id).single();
-        setIsPro(data?.is_pro || false);
+        fetchProfile(activeUser);
       } else {
         setShowAuthModal(true);
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    // Auth change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const activeUser = session?.user ?? null;
       setUser(activeUser);
-      if (activeUser) {
-        const { data } = await supabase.from('profiles').select('is_pro').eq('id', activeUser.id).single();
-        setIsPro(data?.is_pro || false);
-      } else {
-        setIsPro(false);
-      }
+      fetchProfile(activeUser);
     });
 
-    return () => subscription.unsubscribe();
+    // Window focus listener for instant subscription sync
+    const handleFocus = () => {
+      const u = supabase.auth.getUser(); // Get current user
+      u.then(({ data: { user: currentUser } }) => {
+        if (currentUser) {
+          fetchProfile(currentUser);
+        }
+      });
+    };
+
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   const getBaseUrl = () => {
@@ -405,24 +434,23 @@ function App() {
         <div className="user-pill-elite">
           <div className="user-pill-info">
             <div className="user-pill-avatar">
-              {isPro ? <Crown size={16} className="text-yellow-400" /> : <User size={16} />}
+              {isPro ? <Crown size={16} style={{ color: '#fbbf24' }} /> : <User size={16} />}
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
               <span className="user-pill-email">{user.email}</span>
               {isPro ? (
-                <span style={{ fontSize: '10px', color: 'var(--accent)', fontWeight: 'bold', letterSpacing: '0.1em' }}>PRO MEMBER</span>
+                <div className="pro-label-premium">
+                  <Crown size={10} style={{ marginRight: '2px' }} /> VidSift Pro
+                </div>
               ) : (
-                <button 
-                  onClick={openGumroad}
-                  style={{ background: 'none', border: 'none', padding: 0, color: 'var(--text-muted)', fontSize: '10px', textAlign: 'left', textDecoration: 'underline', cursor: 'pointer' }}
-                >
-                  UPGRADE
+                <button className="upgrade-cta-premium" onClick={openGumroad}>
+                  Upgrade to Pro
                 </button>
               )}
             </div>
           </div>
           <button
-            className="pill-logout-btn"
+            className="pill-logout-btn-elite"
             onClick={() => supabase.auth.signOut()}
             title="Sign Out"
           >
