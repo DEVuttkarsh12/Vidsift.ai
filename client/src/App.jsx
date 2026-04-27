@@ -71,21 +71,27 @@ function App() {
     load();
 
     const fetchProfile = async (u) => {
-      if (!u) {
-        setIsPro(false);
-        return;
-      }
+      if (!u) return;
+      setIsSyncing(true);
       try {
+        console.log("[Profile] Fetching status for:", u.email);
         const { data, error } = await supabase
           .from('profiles')
           .select('is_pro')
           .eq('id', u.id)
           .single();
-        
-        if (error) throw error;
-        setIsPro(data?.is_pro || false);
+
+        if (error) {
+          console.warn("[Profile] No profile record yet, might be syncing...");
+          return;
+        }
+
+        console.log("[Profile] Loaded:", data);
+        setIsPro(!!data?.is_pro);
       } catch (err) {
-        console.error('[Profile Sync] Error:', err.message);
+        console.error("[Profile] Error:", err.message);
+      } finally {
+        setTimeout(() => setIsSyncing(false), 800);
       }
     };
 
@@ -167,7 +173,7 @@ function App() {
 
   const handleUpload = async () => {
     if (!file || !ffmpegLoaded) return;
-    
+
     if (!isPro) {
       openGumroad();
       return;
@@ -443,9 +449,18 @@ function App() {
                   <Crown size={10} style={{ marginRight: '2px' }} /> VidSift Pro
                 </div>
               ) : (
-                <button className="upgrade-cta-premium" onClick={openGumroad}>
-                  Upgrade to Pro
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button className="upgrade-cta-premium" onClick={openGumroad}>
+                    Upgrade to Pro
+                  </button>
+                  <button
+                    onClick={() => fetchProfile(user)}
+                    className="check-status-btn"
+                    title="Already purchased? Check status"
+                  >
+                    Check Status
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -564,17 +579,17 @@ function App() {
                 </p>
 
                 {file && !transcript && !isUploading && (
-                  <button 
-                    className="btn-primary-elite" 
-                    onClick={handleUpload} 
-                    style={{ 
-                      width: '100%', 
+                  <button
+                    className="btn-primary-elite"
+                    onClick={handleUpload}
+                    style={{
+                      width: '100%',
                       marginTop: '1.5rem',
                       background: !isPro ? 'linear-gradient(45deg, #f59e0b, #d97706)' : 'var(--accent)',
                       color: !isPro ? '#fff' : 'var(--bg-dark)'
                     }}
                   >
-                    {!isPro ? <Crown size={16} /> : <Zap size={16} />} 
+                    {!isPro ? <Crown size={16} /> : <Zap size={16} />}
                     <span style={{ marginLeft: '8px' }}>
                       {!isPro ? 'Start Free Trial to Analyze' : 'Analyze Studio'}
                     </span>

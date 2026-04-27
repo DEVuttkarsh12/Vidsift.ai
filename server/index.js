@@ -333,35 +333,53 @@ app.post('/api/webhooks/gumroad', async (req, res) => {
             console.log('[Webhook] Test sale detected - bypassing external verification ✓');
         }
 
-        // Supabase Admin Client (Service Role = bypasses RLS)
+        // Supabase Admin Client
         const supabaseUrl = process.env.SUPABASE_URL;
         const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-        if (!supabaseUrl || !supabaseKey) {
-            console.error('[Webhook] Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
-            return res.status(500).send('Server config error');
-        }
-
         const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
 
-        // Determine Pro status: refunded or subscription_ended = revoke
         const shouldBePro = !(refunded === 'true' || resource_name === 'subscription_ended' || resource_name === 'subscription_cancelled');
+        const userEmail = email.trim().toLowerCase();
 
-        const { data: updateData, error } = await supabaseAdmin
-            .from('profiles')
-            .update({ 
-                is_pro: shouldBePro, 
-                gumroad_id: subscription_id || sale_id, 
-                updated_at: new Date().toISOString() 
-            })
-            .ilike('email', email.trim()); // ilike for case-insensitive matching
-
-        if (error) {
-            console.error('[Webhook] DB update error:', error.message);
-            return res.status(500).send('DB error');
+        // 1. Resolve UUID from Auth Users
+        let resolvedId = null;
+        try {
+            const { data: { users }, error: authError } = await supabaseAdmin.auth.admin.listUsers();
+            if (!authError) {
+                const targetUser = users.find(u => u.email?.toLowerCase().trim() === userEmail);
+                if (targetUser) resolvedId = targetUser.id;
+            }
+        } catch (authErr) {
+            console.warn('[Webhook] Auth lookup failed:', authErr.message);
         }
 
-        console.log(`[Webhook] Update complete for ${email} → is_pro: ${shouldBePro} ✓`);
+        // 2. Robust Update/Insert logic
+        const updatePayload = {
+            is_pro: shouldBePro,
+            gumroad_id: subscription_id || sale_id,
+            updated_at: new Date().toISOString()
+        };
+
+        if (resolvedId) {
+            // Priority 1: Match by ID (UUID)
+            const { error: idError } = await supabaseAdmin
+                .from('profiles')
+                .upsert({ id: resolvedId, email: userEmail, ...updatePayload });
+
+            if (idError) console.error('[Webhook] Update by ID failed:', idError.message);
+            else console.log(`[Webhook] Success: Upgraded user by ID (${resolvedId}) ✓`);
+        } else {
+            // Priority 2: Match by Email (Fallback)
+            const { data: existing } = await supabaseAdmin.from('profiles').select('id').ilike('email', userEmail).single();
+            if (existing) {
+                await supabaseAdmin.from('profiles').update(updatePayload).eq('id', existing.id);
+                console.log(`[Webhook] Success: Upgraded existing email profile ✓`);
+            } else {
+                await supabaseAdmin.from('profiles').insert({ email: userEmail, ...updatePayload });
+                console.log(`[Webhook] Success: Created new pro profile for ${userEmail} ✓`);
+            }
+        }
+
         res.status(200).send('OK');
     } catch (err) {
         console.error('[Webhook] Fatal:', err.message);
