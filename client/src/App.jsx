@@ -46,6 +46,7 @@ function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
   const [isPro, setIsPro] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const ffmpegRef = useRef(new FFmpeg());
   const [ffmpegLoaded, setFfmpegLoaded] = useState(false);

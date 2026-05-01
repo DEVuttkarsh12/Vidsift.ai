@@ -144,6 +144,7 @@ app.post('/api/analyze-audio', upload.single('audio'), async (req, res) => {
     res.json({ jobId });
 });
 
+
 // 3.5 Analyze Audio URL (Cloud-Native Handover - ELITE)
 app.post('/api/analyze-audio-url', async (req, res) => {
     const { audioUrl, duration } = req.body;
@@ -199,7 +200,6 @@ app.post('/api/upload', (req, res) => {
 
         let localVideoPath = req.file.path;
         let localAudioPath = null;
-
         try {
             console.log('Uploading video to Cloudinary...');
             const cloudVideo = await cloudinary.uploader.upload(localVideoPath, {
